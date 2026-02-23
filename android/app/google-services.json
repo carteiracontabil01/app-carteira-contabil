@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "81545867499",
+    "project_id": "taigostei-uftpny",
+    "storage_bucket": "taigostei-uftpny.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:81545867499:android:e003444f08bf1d7656ceae",
+        "android_client_info": {
+          "package_name": "com.carteiracontabil.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO9r-8ytpXqsS6RmdlJ-I9Y4pKugXrqhE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+

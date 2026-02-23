@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Cor primária do app (Azul Escuro) -->
+    <color name="primary_color">#15203D</color>
+    <color name="splash_background">#15203D</color>
+</resources>
+
