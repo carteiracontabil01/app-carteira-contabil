@@ -99,12 +99,12 @@ class _SuporteWidgetState extends State<SuporteWidget> {
         key: scaffoldKey,
         backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
         appBar: AppBar(
-          backgroundColor: FlutterFlowTheme.of(context).primary,
+          backgroundColor: Colors.white,
           automaticallyImplyLeading: true,
           leading: IconButton(
             icon: Icon(
               Icons.arrow_back_rounded,
-              color: Colors.white,
+              color: FlutterFlowTheme.of(context).primaryText,
               size: 30,
             ),
             onPressed: () async {
@@ -115,7 +115,7 @@ class _SuporteWidgetState extends State<SuporteWidget> {
             'Suporte',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
                   fontFamily: 'Outfit',
-                  color: Colors.white,
+                  color: FlutterFlowTheme.of(context).primaryText,
                   fontSize: 22,
                   letterSpacing: 0,
                 ),

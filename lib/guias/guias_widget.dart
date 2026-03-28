@@ -1,9 +1,7 @@
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/flutter_flow_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'guias_model.dart';
 export 'guias_model.dart';
 
@@ -34,51 +32,61 @@ class _GuiasWidgetState extends State<GuiasWidget> {
     super.dispose();
   }
 
+  List<int> get _years {
+    final y = DateTime.now().year;
+    return List.generate(11, (i) => y - 5 + i);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
     final dateFormat = DateFormat('dd/MM/yyyy');
-    
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         key: scaffoldKey,
         backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
         appBar: AppBar(
-          backgroundColor: FlutterFlowTheme.of(context).primary,
+          backgroundColor: Colors.white,
           automaticallyImplyLeading: false,
           title: Text(
             'Guias e Cobranças',
-            style: FlutterFlowTheme.of(context).headlineSmall.override(
-                  font: GoogleFonts.nunito(fontWeight: FontWeight.w600),
-                  color: Colors.white,
-                  letterSpacing: 0.0,
-                ),
+            style: GoogleFonts.nunito(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: FlutterFlowTheme.of(context).primaryText,
+            ),
           ),
           actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: Icon(
-                Icons.description,
-                color: Colors.white,
-                size: 26,
+            IconButton(
+              tooltip: 'Chat',
+              onPressed: () => context.pushNamed('chat'),
+              icon: Icon(
+                Icons.chat_bubble_outline_rounded,
+                size: 24,
+                color: FlutterFlowTheme.of(context).primaryText,
               ),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.description_outlined,
+                size: 24,
+                color: FlutterFlowTheme.of(context).primaryText,
+              ),
+              onPressed: () {},
             ),
           ],
           elevation: 0.0,
         ),
         body: SafeArea(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Resumo
-              _buildSummary(context, currencyFormat),
-              
-              // Filtros
-              _buildFilters(context),
-              
-              // Lista de Guias
+              _buildCategoryTabs(context),
+              if (GuiasModel.tabShowsPeriodFilters(_model.selectedTab))
+                _buildPeriodAndStatusFilters(context),
               Expanded(
-                child: _buildGuiasList(context, currencyFormat, dateFormat),
+                child: _buildTabBody(context, dateFormat),
               ),
             ],
           ),
@@ -86,483 +94,845 @@ class _GuiasWidgetState extends State<GuiasWidget> {
       ),
     );
   }
-  
-  Widget _buildSummary(BuildContext context, NumberFormat currencyFormat) {
+
+  Widget _buildTabBody(BuildContext context, DateFormat dateFormat) {
+    switch (_model.selectedTab) {
+      case GuiasModel.tabPgdas:
+        return _buildPgdasList(context, dateFormat);
+      case GuiasModel.tabCertidoes:
+        return _buildCertidoesList(context, dateFormat);
+      case GuiasModel.tabComprovantes:
+        return _buildComprovantesList(context, dateFormat);
+      case GuiasModel.tabCaixas:
+        return _buildCaixasPostaisContent(context, dateFormat);
+      default:
+        return _buildPgdasList(context, dateFormat);
+    }
+  }
+
+  /// Abas horizontais
+  Widget _buildCategoryTabs(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            FlutterFlowTheme.of(context).primary,
-            FlutterFlowTheme.of(context).primary.withValues(alpha: 0.8),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+      width: double.infinity,
+      color: theme.secondaryBackground,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: GuiasModel.categoryTabs.map((tab) {
+            final isSelected = _model.selectedTab == tab;
+            return Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: InkWell(
+                onTap: () => setState(() => _model.setTab(tab)),
+                child: Container(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: isSelected ? theme.primary : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  child: Text(
+                    tab,
+                    style: GoogleFonts.nunito(
+                      fontSize: 14,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected
+                          ? theme.primaryText
+                          : theme.primaryText.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
         ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: FlutterFlowTheme.of(context).primary.withValues(alpha: 0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            'Total Pendente',
-            style: GoogleFonts.nunito(
-              fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.9),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            currencyFormat.format(_model.getTotalPendente()),
-            style: GoogleFonts.nunito(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-        ],
       ),
     );
   }
-  
-  Widget _buildFilters(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      color: FlutterFlowTheme.of(context).secondaryBackground,
+
+  /// Apenas aba Guias - PGDAS
+  Widget _buildPeriodAndStatusFilters(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final months = List.generate(12, (i) => i + 1);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Filtro de período
+          Text(
+            'Período',
+            style: GoogleFonts.nunito(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: theme.secondaryText,
+            ),
+          ),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
-                child: _buildFilterButton(
-                  context,
-                  'Mensal',
-                  Icons.calendar_month,
-                  _model.filterType == 'month',
-                  () {
-                    setState(() {
-                      _model.setFilterType('month');
-                    });
-                  },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ano',
+                      style: GoogleFonts.nunito(
+                        fontSize: 11,
+                        color: theme.secondaryText,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    _dropdownContainer(
+                      context,
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: _model.filterYear,
+                          isExpanded: true,
+                          icon: Icon(Icons.keyboard_arrow_down_rounded,
+                              color: theme.secondaryText, size: 20),
+                          style: GoogleFonts.nunito(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: theme.primaryText,
+                          ),
+                          items: _years
+                              .map((y) => DropdownMenuItem(
+                                    value: y,
+                                    child: Text('$y'),
+                                  ))
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) {
+                              setState(() => _model.setFilterYear(v));
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildFilterButton(
-                  context,
-                  'Anual',
-                  Icons.calendar_today,
-                  _model.filterType == 'year',
-                  () {
-                    setState(() {
-                      _model.setFilterType('year');
-                    });
-                  },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Mês',
+                      style: GoogleFonts.nunito(
+                        fontSize: 11,
+                        color: theme.secondaryText,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    _dropdownContainer(
+                      context,
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: _model.filterMonth,
+                          isExpanded: true,
+                          icon: Icon(Icons.keyboard_arrow_down_rounded,
+                              color: theme.secondaryText, size: 20),
+                          style: GoogleFonts.nunito(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: theme.primaryText,
+                          ),
+                          items: months.map((m) {
+                            final name = DateFormat.MMMM('pt_BR')
+                                .format(DateTime(2000, m, 1));
+                            return DropdownMenuItem(
+                              value: m,
+                              child: Text(
+                                '${name[0].toUpperCase()}${name.substring(1)}',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (v) {
+                            if (v != null) {
+                              setState(() => _model.setFilterMonth(v));
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          // Seletor de mês/ano
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: FlutterFlowTheme.of(context).primaryBackground,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: FlutterFlowTheme.of(context).primary.withValues(alpha: 0.2),
+          Text(
+            'Status',
+            style: GoogleFonts.nunito(
+              fontSize: 11,
+              color: theme.secondaryText,
+            ),
+          ),
+          const SizedBox(height: 4),
+          _dropdownContainer(
+            context,
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _model.statusFilter,
+                isExpanded: true,
+                icon: Icon(Icons.keyboard_arrow_down_rounded,
+                    color: theme.secondaryText, size: 20),
+                style: GoogleFonts.nunito(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: theme.primaryText,
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'Todas', child: Text('Todas')),
+                  DropdownMenuItem(value: 'Pendente', child: Text('Pendente')),
+                  DropdownMenuItem(value: 'Pago', child: Text('Pago')),
+                ],
+                onChanged: (v) {
+                  if (v != null) {
+                    setState(() => _model.setStatusFilter(v));
+                  }
+                },
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                FlutterFlowIconButton(
-                  borderColor: Colors.transparent,
-                  borderRadius: 20,
-                  buttonSize: 36,
-                  icon: Icon(
-                    Icons.chevron_left,
-                    color: FlutterFlowTheme.of(context).primary,
-                    size: 20,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      if (_model.filterType == 'month') {
-                        _model.updateMonth(
-                          DateTime(_model.selectedMonth.year, _model.selectedMonth.month - 1),
-                        );
-                      } else {
-                        _model.updateYear(_model.selectedYear - 1);
-                      }
-                    });
-                  },
-                ),
-                Text(
-                  _model.filterType == 'month'
-                      ? DateFormat('MMMM yyyy', 'pt_BR').format(_model.selectedMonth)
-                      : '${_model.selectedYear}',
-                  style: GoogleFonts.nunito(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: FlutterFlowTheme.of(context).primaryText,
-                  ),
-                ),
-                FlutterFlowIconButton(
-                  borderColor: Colors.transparent,
-                  borderRadius: 20,
-                  buttonSize: 36,
-                  icon: Icon(
-                    Icons.chevron_right,
-                    color: FlutterFlowTheme.of(context).primary,
-                    size: 20,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      if (_model.filterType == 'month') {
-                        _model.updateMonth(
-                          DateTime(_model.selectedMonth.year, _model.selectedMonth.month + 1),
-                        );
-                      } else {
-                        _model.updateYear(_model.selectedYear + 1);
-                      }
-                    });
-                  },
-                ),
-              ],
-            ),
           ),
-          const SizedBox(height: 12),
-          // Filtro de categoria
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildCategoryChip('Todas'),
-                _buildCategoryChip('Honorários'),
-                _buildCategoryChip('Guias'),
-                _buildCategoryChip('Impostos'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
         ],
       ),
     );
   }
-  
-  Widget _buildCategoryChip(String category) {
-    final isSelected = _model.selectedCategory == category;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _model.setCategory(category);
-          });
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? FlutterFlowTheme.of(context).primary
-                : FlutterFlowTheme.of(context).primaryBackground,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isSelected
-                  ? FlutterFlowTheme.of(context).primary
-                  : FlutterFlowTheme.of(context).primary.withValues(alpha: 0.3),
-            ),
-          ),
-          child: Text(
-            category,
-            style: GoogleFonts.nunito(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isSelected
-                  ? Colors.white
-                  : FlutterFlowTheme.of(context).primaryText,
-            ),
-          ),
+
+  Widget _dropdownContainer(BuildContext context, {required Widget child}) {
+    final theme = FlutterFlowTheme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.primaryBackground,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: theme.primaryText.withValues(alpha: 0.1),
         ),
       ),
+      child: child,
     );
   }
-  
-  Widget _buildFilterButton(
+
+  Widget _buildPgdasList(
     BuildContext context,
-    String label,
-    IconData icon,
-    bool isSelected,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? FlutterFlowTheme.of(context).primary
-              : FlutterFlowTheme.of(context).primaryBackground,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected
-                ? FlutterFlowTheme.of(context).primary
-                : FlutterFlowTheme.of(context).primary.withValues(alpha: 0.2),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected ? Colors.white : FlutterFlowTheme.of(context).primaryText,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: GoogleFonts.nunito(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : FlutterFlowTheme.of(context).primaryText,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildGuiasList(BuildContext context, NumberFormat currencyFormat, DateFormat dateFormat) {
-    final guiasList = _model.getFilteredGuiasList();
-    
-    if (guiasList.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.description_outlined,
-              size: 80,
-              color: FlutterFlowTheme.of(context).secondaryText.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Nenhuma guia encontrada',
-              style: GoogleFonts.nunito(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: FlutterFlowTheme.of(context).secondaryText,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Nenhum documento no período selecionado',
-              style: GoogleFonts.nunito(
-                fontSize: 14,
-                color: FlutterFlowTheme.of(context).secondaryText,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: guiasList.length,
-      itemBuilder: (context, index) {
-        final guia = guiasList[index];
-        return _buildGuiaCard(context, guia, currencyFormat, dateFormat);
-      },
-    );
-  }
-  
-  Widget _buildGuiaCard(
-    BuildContext context,
-    Map<String, dynamic> guia,
-    NumberFormat currencyFormat,
     DateFormat dateFormat,
   ) {
-    final isPendente = guia['status'] == 'Pendente';
-    final statusColor = isPendente ? const Color(0xFFFF9800) : const Color(0xFF4CAF50);
-    
-    Color categoryColor;
-    IconData categoryIcon;
-    
-    switch (guia['categoria']) {
-      case 'Honorários':
-        categoryColor = const Color(0xFF2196F3);
-        categoryIcon = Icons.person_outline;
-        break;
-      case 'Guias':
-        categoryColor = const Color(0xFF9C27B0);
-        categoryIcon = Icons.receipt_long;
-        break;
-      case 'Impostos':
-        categoryColor = const Color(0xFFFF5722);
-        categoryIcon = Icons.account_balance;
-        break;
-      default:
-        categoryColor = FlutterFlowTheme.of(context).primary;
-        categoryIcon = Icons.description;
+    final guiasList = _model.getFilteredPgdasList();
+
+    if (guiasList.isEmpty) {
+      return _emptyState(
+        context,
+        'Nenhum registro no período',
+        'Ajuste ano, mês ou status',
+      );
     }
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: FlutterFlowTheme.of(context).secondaryBackground,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+
+    final theme = FlutterFlowTheme.of(context);
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Período',
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.secondaryText,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Pgto',
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.secondaryText,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  'Venc.',
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.secondaryText,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 36,
+                child: Text(
+                  'Decl.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.secondaryText,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 40,
+                child: Text(
+                  'Baixar',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.secondaryText,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Divider(height: 1, color: theme.primaryText.withValues(alpha: 0.08)),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            itemCount: guiasList.length,
+            separatorBuilder: (_, __) => Divider(
+              height: 1,
+              color: theme.primaryText.withValues(alpha: 0.06),
+            ),
+            itemBuilder: (context, index) {
+              return _buildPgdasTableRow(
+                context,
+                guiasList[index],
+                dateFormat,
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPgdasTableRow(
+    BuildContext context,
+    Map<String, dynamic> guia,
+    DateFormat dateFormat,
+  ) {
+    final theme = FlutterFlowTheme.of(context);
+    final vencimento = guia['vencimento'] as DateTime;
+    final periodo = vencimento.month.toString().padLeft(2, '0');
+    final isPendente = guia['status'] == 'Pendente';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              periodo,
+              style: GoogleFonts.nunito(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: theme.primaryText,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isPendente
+                      ? const Color(0xFFFFE0B2).withValues(alpha: 0.7)
+                      : const Color(0xFFB2DFDB).withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  guia['status'] as String,
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: isPendente
+                        ? const Color(0xFFE65100)
+                        : const Color(0xFF00695C),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              dateFormat.format(vencimento),
+              style: GoogleFonts.nunito(
+                fontSize: 12,
+                color: theme.primaryText,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 36,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              icon: Icon(
+                Icons.search_rounded,
+                size: 20,
+                color: theme.secondaryText,
+              ),
+              onPressed: () {},
+            ),
+          ),
+          SizedBox(
+            width: 40,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              style: IconButton.styleFrom(
+                backgroundColor: const Color(0xFF00897B).withValues(alpha: 0.15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              icon: const Icon(
+                Icons.download_rounded,
+                size: 20,
+                color: Color(0xFF00897B),
+              ),
+              onPressed: () {},
+            ),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            // Abrir/baixar PDF
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: categoryColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        categoryIcon,
-                        size: 24,
-                        color: categoryColor,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            guia['titulo'],
-                            style: GoogleFonts.nunito(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: FlutterFlowTheme.of(context).primaryText,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            guia['descricao'],
-                            style: GoogleFonts.nunito(
-                              fontSize: 13,
-                              color: FlutterFlowTheme.of(context).secondaryText,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+    );
+  }
+
+  Widget _buildCertidoesList(
+    BuildContext context,
+    DateFormat dateFormat,
+  ) {
+    final list = _model.getCertidoesList();
+    if (list.isEmpty) {
+      return _emptyState(context, 'Nenhum documento', '');
+    }
+    final theme = FlutterFlowTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Text(
+                  'Documento',
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.secondaryText,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 14,
-                              color: FlutterFlowTheme.of(context).secondaryText,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Venc: ${dateFormat.format(guia['vencimento'])}',
-                              style: GoogleFonts.nunito(
-                                fontSize: 12,
-                                color: FlutterFlowTheme.of(context).secondaryText,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            guia['status'],
-                            style: GoogleFonts.nunito(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: statusColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          currencyFormat.format(guia['valor']),
-                          style: GoogleFonts.nunito(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: FlutterFlowTheme.of(context).primary,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.download,
-                              size: 14,
-                              color: FlutterFlowTheme.of(context).primary,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'PDF',
-                              style: GoogleFonts.nunito(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: FlutterFlowTheme.of(context).primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Emissão',
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.secondaryText,
+                  ),
                 ),
-              ],
-            ),
+              ),
+              SizedBox(
+                width: 44,
+                child: Text(
+                  'Baixar',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.secondaryText,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
+        Divider(height: 1, color: theme.primaryText.withValues(alpha: 0.08)),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            itemCount: list.length,
+            separatorBuilder: (_, __) => Divider(
+              height: 1,
+              color: theme.primaryText.withValues(alpha: 0.06),
+            ),
+            itemBuilder: (context, index) {
+              final row = list[index];
+              final emissao = row['emissao'] as DateTime;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        row['titulo'] as String,
+                        style: GoogleFonts.nunito(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: theme.primaryText,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        dateFormat.format(emissao),
+                        style: GoogleFonts.nunito(
+                          fontSize: 12,
+                          color: theme.primaryText,
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 44,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                            minWidth: 40, minHeight: 40),
+                        style: IconButton.styleFrom(
+                          backgroundColor:
+                              const Color(0xFF00897B).withValues(alpha: 0.15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        icon: const Icon(
+                          Icons.download_rounded,
+                          size: 20,
+                          color: Color(0xFF00897B),
+                        ),
+                        onPressed: () {},
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Mesmo padrão das outras abas: cabeçalho + lista (sem card)
+  Widget _buildComprovantesList(
+    BuildContext context,
+    DateFormat dateFormat,
+  ) {
+    final list = _model.getComprovantesList();
+    if (list.isEmpty) {
+      return _emptyState(context, 'Nenhum comprovante', '');
+    }
+    final theme = FlutterFlowTheme.of(context);
+    const navyButton = Color(0xFF1A237E);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Código',
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.secondaryText,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  'Vencimento',
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.secondaryText,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 48,
+                child: Text(
+                  'Detalhes',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.secondaryText,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Divider(height: 1, color: theme.primaryText.withValues(alpha: 0.08)),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            itemCount: list.length,
+            separatorBuilder: (_, __) => Divider(
+              height: 1,
+              color: theme.primaryText.withValues(alpha: 0.06),
+            ),
+            itemBuilder: (context, index) {
+              final row = list[index];
+              final codigo = '${row['codigo']}';
+              final venc = row['vencimento'] as DateTime;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        codigo,
+                        style: GoogleFonts.nunito(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: theme.primaryText,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        dateFormat.format(venc),
+                        style: GoogleFonts.nunito(
+                          fontSize: 13,
+                          color: theme.primaryText,
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 48,
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Material(
+                          color: navyButton,
+                          borderRadius: BorderRadius.circular(8),
+                          child: InkWell(
+                            onTap: () {},
+                            borderRadius: BorderRadius.circular(8),
+                            child: const SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: Icon(
+                                Icons.search_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Caixas postais: apenas cabeçalho da tabela + lista (como Certidões/Comprovantes)
+  Widget _buildCaixasPostaisContent(
+    BuildContext context,
+    DateFormat dateFormat,
+  ) {
+    final theme = FlutterFlowTheme.of(context);
+    final list = _model.getCaixasPostaisList();
+
+    if (list.isEmpty) {
+      return _emptyState(context, 'Nenhuma mensagem', '');
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 88,
+                child: Text(
+                  'Recebida',
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.secondaryText,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  'Assunto',
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.secondaryText,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+        ),
+        Divider(height: 1, color: theme.primaryText.withValues(alpha: 0.08)),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            itemCount: list.length,
+            separatorBuilder: (_, __) => Divider(
+              height: 1,
+              color: theme.primaryText.withValues(alpha: 0.06),
+            ),
+            itemBuilder: (context, index) {
+              final row = list[index];
+              final recebida = row['recebida'] as DateTime;
+              final assunto = row['assunto'] as String;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 88,
+                      child: Text(
+                        dateFormat.format(recebida),
+                        style: GoogleFonts.nunito(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: theme.primaryText,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        assunto,
+                        style: GoogleFonts.nunito(
+                          fontSize: 13,
+                          color: theme.primaryText,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.icon(
+                      onPressed: () {},
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF1A237E),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.search_rounded, size: 18),
+                      label: Text(
+                        'Ler',
+                        style: GoogleFonts.nunito(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _emptyState(
+    BuildContext context,
+    String title,
+    String subtitle,
+  ) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.description_outlined,
+            size: 64,
+            color: FlutterFlowTheme.of(context)
+                .secondaryText
+                .withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: GoogleFonts.nunito(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: FlutterFlowTheme.of(context).secondaryText,
+            ),
+          ),
+          if (subtitle.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: GoogleFonts.nunito(
+                fontSize: 13,
+                color: FlutterFlowTheme.of(context).secondaryText,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 }
-

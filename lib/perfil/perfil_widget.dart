@@ -47,7 +47,18 @@ class _PerfilWidgetState extends State<PerfilWidget> {
         backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
         appBar: AppBar(
           backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
           automaticallyImplyLeading: false,
+          leading: Navigator.of(context).canPop()
+              ? IconButton(
+                  icon: Icon(
+                    Icons.arrow_back_rounded,
+                    color: FlutterFlowTheme.of(context).primaryText,
+                    size: 28,
+                  ),
+                  onPressed: () => context.safePop(),
+                )
+              : null,
           title: Text(
             'Perfil',
             style: FlutterFlowTheme.of(context).headlineSmall.override(

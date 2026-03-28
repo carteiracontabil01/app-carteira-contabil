@@ -6,13 +6,18 @@ class NfseListModel extends FlutterFlowModel<NfseListWidget> {
   // Filtros
   DateTime selectedMonth = DateTime.now();
   int selectedYear = DateTime.now().year;
-  String filterType = 'month'; // 'month' ou 'year'
-  
+  String filterType = 'month'; // 'month', 'year' ou 'range'
+  DateTime? rangeStart;
+  DateTime? rangeEnd;
+
   // Estado
   bool isLoading = false;
   String searchQuery = '';
-  
-  // Dados mockados de NFS-e emitidas
+
+  /// Lista vinda da API (fn_get_company_nfse_list). Quando preenchida, a tela usa ela em vez do mock.
+  List<Map<String, dynamic>> nfseListFromApi = [];
+
+  // Dados mockados de NFS-e emitidas (fallback quando não há companyId)
   List<Map<String, dynamic>> getAllNfseList() {
     return [
       {
@@ -74,19 +79,39 @@ class NfseListModel extends FlutterFlowModel<NfseListWidget> {
     ];
   }
   
-  // Filtra notas por período
+  // Filtra notas por período (usa lista da API se houver; senão mock filtrado)
   List<Map<String, dynamic>> getFilteredNfseList() {
+    if (nfseListFromApi.isNotEmpty) return nfseListFromApi;
+
     final allNfse = getAllNfseList();
-    
     return allNfse.where((nfse) {
       final data = nfse['data'] as DateTime;
-      
+      final date = DateTime(data.year, data.month, data.day);
+
+      if (filterType == 'range' && rangeStart != null && rangeEnd != null) {
+        final start = DateTime(rangeStart!.year, rangeStart!.month, rangeStart!.day);
+        final end = DateTime(rangeEnd!.year, rangeEnd!.month, rangeEnd!.day);
+        return !date.isBefore(start) && !date.isAfter(end);
+      }
       if (filterType == 'month') {
         return data.year == selectedMonth.year && data.month == selectedMonth.month;
-      } else {
-        return data.year == selectedYear;
       }
+      return data.year == selectedYear;
     }).toList();
+  }
+
+  void setDateRange(DateTime start, DateTime end) {
+    filterType = 'range';
+    rangeStart = start;
+    rangeEnd = end;
+  }
+
+  void clearDateRange() {
+    filterType = 'month';
+    selectedMonth = DateTime.now();
+    selectedYear = DateTime.now().year;
+    rangeStart = null;
+    rangeEnd = null;
   }
   
   @override

@@ -112,12 +112,12 @@ class _TicketsWidgetState extends State<TicketsWidget> {
         key: scaffoldKey,
         backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
         appBar: AppBar(
-          backgroundColor: FlutterFlowTheme.of(context).primary,
+          backgroundColor: Colors.white,
           automaticallyImplyLeading: true,
           leading: IconButton(
             icon: Icon(
               Icons.arrow_back_rounded,
-              color: Colors.white,
+              color: FlutterFlowTheme.of(context).primaryText,
               size: 30,
             ),
             onPressed: () async {
@@ -128,7 +128,7 @@ class _TicketsWidgetState extends State<TicketsWidget> {
             'Meus Tickets',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
                   fontFamily: 'Outfit',
-                  color: Colors.white,
+                  color: FlutterFlowTheme.of(context).primaryText,
                   fontSize: 22,
                   letterSpacing: 0,
                 ),

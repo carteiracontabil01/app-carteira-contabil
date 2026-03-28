@@ -139,16 +139,13 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData(
         brightness: Brightness.light,
         scrollbarTheme: ScrollbarThemeData(
-          radius: Radius.circular(5.0),
+          radius: const Radius.circular(2.0),
+          thickness: WidgetStateProperty.all(4.0),
+          thumbVisibility: WidgetStateProperty.all(false),
           thumbColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.dragged)) {
-              return Color(4278303194);
-            }
-            if (states.contains(WidgetState.hovered)) {
-              return Color(4278303194);
-            }
-            return Color(4278303194);
+            return Colors.black.withValues(alpha: 0.12);
           }),
+          trackColor: WidgetStateProperty.all(Colors.transparent),
         ),
         useMaterial3: false,
       ),
@@ -188,13 +185,13 @@ class _NavBarPageState extends State<NavBarPage> {
 
   @override
   Widget build(BuildContext context) {
+    final companyId = context.watch<FFAppState>().companyId ?? '';
     final tabs = {
-      'home': HomeWidget(),
+      'home': HomeWidget(key: ValueKey('home_$companyId')),
       'nfseList': NfseListWidget(),
       'guias': GuiasWidget(),
-      'perfil': PerfilWidget(),
+      'servicos': ServicosWidget(embeddedInBottomNav: true),
     };
-    final currentIndex = tabs.keys.toList().indexOf(_currentPageName);
 
     return Scaffold(
       resizeToAvoidBottomInset: !widget.disableResizeToAvoidBottomInset,
@@ -378,34 +375,34 @@ class _NavBarPageState extends State<NavBarPage> {
                     ),
                   ),
                 ),
-                // Botão Perfil
+                // Botão Serviços
                 Expanded(
                   child: InkWell(
                     onTap: () => safeSetState(() {
                       _currentPage = null;
-                      _currentPageName = 'perfil';
+                      _currentPageName = 'servicos';
                     }),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          _currentPageName == 'perfil'
-                              ? Icons.person_rounded
-                              : Icons.person_outline_rounded,
-                          color: _currentPageName == 'perfil'
+                          _currentPageName == 'servicos'
+                              ? Icons.work_rounded
+                              : Icons.work_outline_rounded,
+                          color: _currentPageName == 'servicos'
                               ? FlutterFlowTheme.of(context).primary
                               : FlutterFlowTheme.of(context).grayscale80,
                           size: 24,
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Perfil',
+                          'Serviços',
                           style: GoogleFonts.nunito(
                             fontSize: 11,
-                            fontWeight: _currentPageName == 'perfil'
+                            fontWeight: _currentPageName == 'servicos'
                                 ? FontWeight.w600
                                 : FontWeight.w500,
-                            color: _currentPageName == 'perfil'
+                            color: _currentPageName == 'servicos'
                                 ? FlutterFlowTheme.of(context).primary
                                 : FlutterFlowTheme.of(context).grayscale80,
                           ),
