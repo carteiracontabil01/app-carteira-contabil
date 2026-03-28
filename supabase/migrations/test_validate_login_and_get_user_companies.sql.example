@@ -1,0 +1,56 @@
+-- ========================================
+-- TESTE: validate_login e get_user_companies
+-- ========================================
+-- Substitua o UUID em cada query pelo auth.users.id do usuário, se necessário.
+-- ========================================
+
+-- 1) validate_login (uma empresa)
+SELECT public.validate_login('47abead2-c80e-4306-88e9-9df23ee43616'::uuid);
+
+-- 2) get_user_companies (todas as empresas)
+SELECT public.get_user_companies('47abead2-c80e-4306-88e9-9df23ee43616'::uuid);
+
+-- ========== DIAGNÓSTICO PASSO A PASSO ==========
+-- Rode cada bloco e veja onde para. validate_login exige: company_users + role + company_user_companies + company ativa.
+
+-- A) company_users: existe registro com esse auth_user_id?
+SELECT id AS company_user_id, auth_user_id, name, email, status
+FROM company.company_users
+WHERE auth_user_id = '47abead2-c80e-4306-88e9-9df23ee43616'::uuid;
+
+-- B) company_user_roles: esse company_user tem role APP_ONLY ou WEB_APP?
+SELECT cur.id, cur.user_id, cur.role_id, cr.sigla
+FROM company.company_user_roles cur
+JOIN company.company_roles cr ON cr.id = cur.role_id
+WHERE cur.user_id IN (
+  SELECT id FROM company.company_users WHERE auth_user_id = '47abead2-c80e-4306-88e9-9df23ee43616'::uuid
+);
+
+-- C) company_user_companies: esse company_user está vinculado a alguma empresa? Status?
+SELECT cuc.id, cuc.user_id, cuc.company_id, cuc.status, c.business_name, c.status AS company_status
+FROM company.company_user_companies cuc
+JOIN company.companies c ON c.id = cuc.company_id
+WHERE cuc.user_id IN (
+  SELECT id FROM company.company_users WHERE auth_user_id = '47abead2-c80e-4306-88e9-9df23ee43616'::uuid
+);
+
+-- D) JOIN completo (o que validate_login exige): só retorna se cu.status, cuc.status e c.status forem 'active'
+SELECT
+  cu.id AS company_user_id,
+  c.id AS company_id,
+  c.business_name,
+  cuc.status AS cuc_status,
+  c.status::text AS company_status,
+  cur.role_id
+FROM company.company_users cu
+INNER JOIN company.company_user_roles cur ON cur.user_id = cu.id
+INNER JOIN company.company_user_companies cuc ON cuc.user_id = cu.id
+INNER JOIN company.companies c ON c.id = cuc.company_id
+WHERE cu.auth_user_id = '47abead2-c80e-4306-88e9-9df23ee43616'::uuid
+  AND LOWER(cu.status) = 'active'
+  AND cur.role_id IN (
+    'f49828e1-7748-4a92-8b7e-ef26560e469f',
+    '1aec8165-ee39-428b-8e6b-13b6a26cdb9b'
+  )
+  AND LOWER(cuc.status) = 'active'
+  AND LOWER(c.status::text) = 'active';

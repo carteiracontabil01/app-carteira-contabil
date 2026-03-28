@@ -1,0 +1,11 @@
+-- ========================================
+-- Alternativa: fn_get_company_billing_dashboard com SECURITY DEFINER
+-- Use APENAS se a migration 20260224000001 não resolver.
+-- A função passa a rodar com privilégios do owner, ignorando RLS.
+-- ========================================
+--
+-- Descomente e execute no SQL Editor (ajuste schema se necessário):
+--
+-- ALTER FUNCTION public.fn_get_company_billing_dashboard(uuid, date, date)
+--   SECURITY DEFINER;
+--

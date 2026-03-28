@@ -27,3 +27,6 @@ export 'suporte/tickets_widget.dart' show TicketsWidget;
 export 'emitir_nfse/emitir_nfse_widget.dart' show EmitirNfseWidget;
 export 'nfse_list/nfse_list_widget.dart' show NfseListWidget;
 export 'guias/guias_widget.dart' show GuiasWidget;
+export 'chat/chat_widget.dart' show ChatWidget;
+export 'servicos/servicos_widget.dart' show ServicosWidget;
+export 'servicos/solicitar_servico_widget.dart' show SolicitarServicoWidget;

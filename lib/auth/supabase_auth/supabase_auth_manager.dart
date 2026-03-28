@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '/auth/auth_manager.dart';
+import '/app_state.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import 'email_auth.dart';
@@ -12,7 +13,8 @@ export '/auth/base_auth_user_provider.dart';
 
 class SupabaseAuthManager extends AuthManager with EmailSignInManager {
   @override
-  Future signOut() {
+  Future signOut() async {
+    FFAppState().clearCompanyContext();
     return SupaFlow.client.auth.signOut();
   }
 

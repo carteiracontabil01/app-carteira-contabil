@@ -102,6 +102,15 @@ class FFAppState extends ChangeNotifier {
     _safeInit(() {
       _fcmToken = prefs.getString('ff_fcmToken') ?? _fcmToken;
     });
+    _safeInit(() {
+      _companyUserId = prefs.getString('ff_companyUserId');
+    });
+    _safeInit(() {
+      _companyId = prefs.getString('ff_companyId');
+    });
+    _safeInit(() {
+      _companyName = prefs.getString('ff_companyName');
+    });
   }
 
   void update(VoidCallback callback) {
@@ -409,6 +418,93 @@ class FFAppState extends ChangeNotifier {
   set fcmToken(String value) {
     _fcmToken = value;
     prefs.setString('ff_fcmToken', value);
+  }
+
+  // ============================================
+  // 🏢 COMPANY (Carteira Contábil - schema company)
+  // ============================================
+
+  /// ID do company_user (company.company_users)
+  String? _companyUserId;
+  String? get companyUserId => _companyUserId;
+  set companyUserId(String? value) {
+    _companyUserId = value;
+    try {
+      if (value != null) {
+        prefs.setString('ff_companyUserId', value);
+      } else {
+        prefs.remove('ff_companyUserId');
+      }
+    } catch (e) {
+      print('⚠️ Erro ao salvar companyUserId: $e');
+    }
+    notifyListeners();
+  }
+
+  /// ID da empresa (company.companies)
+  String? _companyId;
+  String? get companyId => _companyId;
+  set companyId(String? value) {
+    _companyId = value;
+    try {
+      if (value != null) {
+        prefs.setString('ff_companyId', value);
+      } else {
+        prefs.remove('ff_companyId');
+      }
+    } catch (e) {
+      print('⚠️ Erro ao salvar companyId: $e');
+    }
+    notifyListeners();
+  }
+
+  /// Nome da empresa atual (ex.: business_name) para exibição
+  String? _companyName;
+  String? get companyName => _companyName;
+  set companyName(String? value) {
+    _companyName = value;
+    try {
+      if (value != null) {
+        prefs.setString('ff_companyName', value);
+      } else {
+        prefs.remove('ff_companyName');
+      }
+    } catch (e) {
+      print('⚠️ Erro ao salvar companyName: $e');
+    }
+    notifyListeners();
+  }
+
+  /// Define company_user, company e opcionalmente o nome após login ou troca de empresa
+  void setCompanyContext(String companyUserId, String companyId, [String? companyName]) {
+    _companyUserId = companyUserId;
+    _companyId = companyId;
+    _companyName = companyName;
+    try {
+      prefs.setString('ff_companyUserId', companyUserId);
+      prefs.setString('ff_companyId', companyId);
+      if (companyName != null) {
+        prefs.setString('ff_companyName', companyName);
+      } else {
+        prefs.remove('ff_companyName');
+      }
+    } catch (e) {
+      print('⚠️ Erro ao salvar contexto da empresa: $e');
+    }
+    notifyListeners();
+    print('✅ Contexto da empresa definido: company_user=$companyUserId, company=$companyId');
+  }
+
+  /// Limpa o contexto da empresa (no logout)
+  void clearCompanyContext() {
+    _companyUserId = null;
+    _companyId = null;
+    _companyName = null;
+    prefs.remove('ff_companyUserId');
+    prefs.remove('ff_companyId');
+    prefs.remove('ff_companyName');
+    notifyListeners();
+    print('🗑️  Contexto da empresa removido');
   }
 
   // ============================================

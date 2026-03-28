@@ -1,4 +1,5 @@
 import '/flutter_flow/flutter_flow_util.dart';
+import '/services/billing_dashboard_service.dart';
 import 'home_widget.dart' show HomeWidget;
 import 'package:flutter/material.dart';
 
@@ -6,11 +7,14 @@ class HomeModel extends FlutterFlowModel<HomeWidget> {
   // Estado de filtros
   DateTime selectedMonth = DateTime.now();
   int selectedYear = DateTime.now().year;
-  String filterType = 'month'; // 'month' ou 'year'
+  DateTime? rangeStart; // usado quando filterType == 'range'
+  DateTime? rangeEnd;
+  String filterType = 'month'; // 'month', 'year' ou 'range'
   bool isRevenueVisible = true; // Controla visibilidade do faturamento
-  
-  // Banco de dados mockado completo
-  // Estrutura: ano -> mês -> dados
+  bool isLoading = false;
+
+  // Dados vindos do fn_get_company_billing_dashboard (substitui mock)
+  // Fallback mock apenas para desenvolvimento sem API
   final Map<int, Map<int, Map<String, dynamic>>> _mockData = {
     2023: {
       1: {'revenue': 28500.00, 'invoices': 8, 'pending': 2},
@@ -56,19 +60,42 @@ class HomeModel extends FlutterFlowModel<HomeWidget> {
     },
   };
   
-  // Dados mockados para demonstração (calculados dinamicamente)
-  double currentRevenue = 45750.89;
-  double previousRevenue = 38920.45;
-  int invoicesIssued = 12;
-  int pendingInvoices = 3;
-  
-  // Dados de faturamento para gráfico (últimos 6 meses/anos)
+  // Dados do dashboard (API ou fallback mock)
+  double currentRevenue = 0;
+  double previousRevenue = 0;
+  int invoicesIssued = 0;
+  int pendingInvoices = 0;
+  int overdueInvoices = 0;
+  double totalTaxes = 0;
+  double averageTicket = 0;
   List<Map<String, dynamic>> chartData = [];
-  
+
+  /// Lista de empresas do usuário (para dropdown)
+  List<Map<String, dynamic>> userCompanies = [];
+
+  /// Atualiza os dados a partir da resposta da API
+  void setDashboardData(BillingDashboardData data) {
+    currentRevenue = data.currentRevenue;
+    previousRevenue = data.previousRevenue;
+    invoicesIssued = data.invoicesIssued;
+    pendingInvoices = data.pendingInvoices;
+    overdueInvoices = data.overdueInvoices;
+    totalTaxes = data.totalTaxes;
+    averageTicket = data.averageTicket;
+    chartData = data.chartData;
+  }
+
+  /// Quantidade de documentos considerados "pagos" (emitidos e não pendentes/atrasados)
+  int get paidInvoices => (invoicesIssued - pendingInvoices - overdueInvoices).clamp(0, 1 << 30);
+
+  /// Usa dados mock quando API não retorna dados (fallback)
+  void useMockData() {
+    _updateData();
+  }
+
   @override
   void initState(BuildContext context) {
-    // Inicializa com dados do mês/ano atual
-    _updateData();
+    // Dados serão carregados via API no widget
   }
 
   @override
@@ -82,19 +109,26 @@ class HomeModel extends FlutterFlowModel<HomeWidget> {
   
   void updateMonth(DateTime newMonth) {
     selectedMonth = newMonth;
-    _updateData();
   }
-  
+
   void updateYear(int newYear) {
     selectedYear = newYear;
-    _updateData();
   }
-  
+
   void setFilterType(String type) {
     filterType = type;
-    _updateData();
+    if (type == 'range' && (rangeStart == null || rangeEnd == null)) {
+      final now = DateTime.now();
+      rangeStart = DateTime(now.year, now.month, 1);
+      rangeEnd = DateTime(now.year, now.month + 1, 0);
+    }
   }
-  
+
+  void setDateRange(DateTime start, DateTime end) {
+    rangeStart = start;
+    rangeEnd = end;
+  }
+
   void toggleRevenueVisibility() {
     isRevenueVisible = !isRevenueVisible;
   }

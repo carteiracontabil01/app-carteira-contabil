@@ -259,10 +259,9 @@ class _NotificacoesWidgetState extends State<NotificacoesWidget> {
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
+        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
         appBar: _buildAppBar(),
         body: SafeArea(
-          top: true,
           child: _buildBody(),
         ),
       ),
@@ -270,43 +269,50 @@ class _NotificacoesWidgetState extends State<NotificacoesWidget> {
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final theme = FlutterFlowTheme.of(context);
     return AppBar(
-      backgroundColor: FlutterFlowTheme.of(context).primary,
-      automaticallyImplyLeading: true,
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      automaticallyImplyLeading: false,
       leading: IconButton(
         icon: Icon(
           Icons.arrow_back_rounded,
-          color: Colors.white,
-          size: 30,
+          color: theme.primaryText,
+          size: 24,
         ),
-        onPressed: () async {
-          context.pop();
-        },
+        onPressed: () => context.safePop(),
       ),
       title: Text(
         'Notificações',
-        style: FlutterFlowTheme.of(context).headlineMedium.override(
-              fontFamily: 'Outfit',
-              color: Colors.white,
-              fontSize: 22,
-              letterSpacing: 0,
-            ),
+        style: GoogleFonts.nunito(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: theme.primaryText,
+        ),
       ),
-      actions: _model.unreadCount > 0 ? [_buildMarkAllButton()] : [],
       centerTitle: true,
-      elevation: 2,
-    );
-  }
-
-  Widget _buildMarkAllButton() {
-    return IconButton(
-      icon: Icon(
-        Icons.done_all_rounded,
-        color: FlutterFlowTheme.of(context).primaryText,
-        size: 24,
-      ),
-      onPressed: _markAllAsRead,
-      tooltip: 'Marcar todas como lidas',
+      elevation: 0,
+      actions: [
+        IconButton(
+          tooltip: 'Chat',
+          onPressed: () => context.pushNamed('chat'),
+          icon: Icon(
+            Icons.chat_bubble_outline_rounded,
+            size: 24,
+            color: theme.primaryText,
+          ),
+        ),
+        if (_model.unreadCount > 0)
+          IconButton(
+            icon: Icon(
+              Icons.done_all_rounded,
+              color: theme.primaryText,
+              size: 24,
+            ),
+            onPressed: _markAllAsRead,
+            tooltip: 'Marcar todas como lidas',
+          ),
+      ],
     );
   }
 

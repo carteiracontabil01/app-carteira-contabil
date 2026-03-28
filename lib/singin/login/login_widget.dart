@@ -3,6 +3,7 @@ import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
+import '/services/app_login_service.dart';
 import '/services/biometric_service.dart';
 import '/services/secure_storage_service.dart';
 import '/services/permission_service.dart';
@@ -146,9 +147,17 @@ class _LoginWidgetState extends State<LoginWidget> {
         credentials['password']!,
       );
 
-      if (user != null) {
-        // Login bem-sucedido
-        print('✅ Login biométrico bem-sucedido');
+      if (user != null && user.uid != null) {
+        // Validar permissão de acesso ao app (role APP_ONLY, status active)
+        final hasAccess = await AppLoginService.validateAndSaveCompanyContext(
+          context,
+          user.uid!,
+        );
+
+        if (!hasAccess || !mounted) {
+          await authManager.signOut();
+          return;
+        }
 
         // Configurar FCM Token após login biométrico
         try {
@@ -674,7 +683,18 @@ class _LoginWidgetState extends State<LoginWidget> {
                 password,
               );
 
-              if (user == null) {
+              if (user == null || user.uid == null) {
+                return;
+              }
+
+              // Validar permissão de acesso ao app (role APP_ONLY, status active)
+              final hasAccess = await AppLoginService.validateAndSaveCompanyContext(
+                context,
+                user.uid!,
+              );
+
+              if (!hasAccess || !mounted) {
+                await authManager.signOut();
                 return;
               }
 
