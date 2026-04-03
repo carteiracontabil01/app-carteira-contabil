@@ -4,6 +4,8 @@ import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/services/app_login_service.dart';
 import '/services/billing_dashboard_service.dart';
+import '/services/company_profile_service.dart';
+import '/certificados_digitais/certificados_digitais_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -34,7 +36,23 @@ class _HomeWidgetState extends State<HomeWidget> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadDashboardData();
       _loadUserCompanies();
+      _syncCompanyProfileIfNeeded();
     });
+  }
+
+  /// Garante snapshot da view da empresa alinhado ao [FFAppState] (cold start / prefs).
+  Future<void> _syncCompanyProfileIfNeeded() async {
+    final appState = context.read<FFAppState>();
+    final cid = appState.companyId;
+    final cuid = appState.companyUserId;
+    if (cid == null || cid.isEmpty || cuid == null || cuid.isEmpty) return;
+    final prof = appState.companyProfile;
+    if (prof != null && prof['id']?.toString() == cid) return;
+    await CompanyProfileService.refreshIntoAppState(
+      companyId: cid,
+      companyUserId: cuid,
+    );
+    if (mounted) safeSetState(() {});
   }
 
   /// Carrega lista de empresas do usuário para o dropdown
@@ -183,6 +201,10 @@ class _HomeWidgetState extends State<HomeWidget> {
                     const SizedBox(height: 20),
                     // Faturamento (com seletor de período integrado)
                     _buildRevenueCard(context, currencyFormat, percentFormat),
+
+                    const SizedBox(height: 20),
+
+                    _buildHomeQuickActionsMenu(context),
 
                     const SizedBox(height: 20),
 
@@ -392,8 +414,105 @@ class _HomeWidgetState extends State<HomeWidget> {
       (item['company_id'] ?? '').toString(),
       (item['business_name'] ?? 'Empresa').toString(),
     );
+    await CompanyProfileService.refreshIntoAppState(
+      companyId: (item['company_id'] ?? '').toString(),
+      companyUserId: (item['company_user_id'] ?? '').toString(),
+    );
     _loadDashboardData();
     safeSetState(() {});
+  }
+
+  /// Atalhos com ícone abaixo do faturamento; acrescente novos [SizedBox] no [Wrap].
+  Widget _buildHomeQuickActionsMenu(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Acesso rápido',
+            style: GoogleFonts.nunito(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: theme.secondaryText,
+            ),
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const spacing = 12.0;
+              const columns = 4;
+              final tileW =
+                  (constraints.maxWidth - spacing * (columns - 1)) / columns;
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: [
+                  SizedBox(
+                    width: tileW,
+                    child: _homeQuickActionButton(
+                      context,
+                      icon: Icons.badge_outlined,
+                      label: 'Certificados',
+                      onTap: () =>
+                          context.pushNamed(CertificadosDigitaisWidget.routeName),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _homeQuickActionButton(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final theme = FlutterFlowTheme.of(context);
+    return Material(
+      color: theme.secondaryBackground,
+      borderRadius: BorderRadius.circular(16),
+      elevation: 0,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: theme.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: theme.primary, size: 26),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.nunito(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: theme.primaryText,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // Faturamento: valor em destaque no topo + seletor de período abaixo
