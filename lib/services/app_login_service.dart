@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '/backend/supabase/supabase.dart';
 import '/app_state.dart';
+import '/services/company_profile_service.dart';
 
 /// Resultado da validação de login do app
 class AppLoginValidationResult {
@@ -114,6 +115,11 @@ class AppLoginService {
       result.companyUserId!,
       result.companyId!,
       result.companyName,
+    );
+
+    await CompanyProfileService.refreshIntoAppState(
+      companyId: result.companyId!,
+      companyUserId: result.companyUserId!,
     );
 
     return true;

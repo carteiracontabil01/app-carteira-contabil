@@ -248,10 +248,31 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               },
             ),
             FFRoute(
+              name: NfseDetailWidget.routeName,
+              path: NfseDetailWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) {
+                final extra = params.state.extra;
+                Map<String, dynamic> billing = {};
+                if (extra is Map<String, dynamic>) {
+                  billing = Map<String, dynamic>.from(extra);
+                } else if (extra is Map) {
+                  billing = Map<String, dynamic>.from(extra);
+                }
+                return NfseDetailWidget(billing: billing);
+              },
+            ),
+            FFRoute(
               name: GuiasWidget.routeName,
               path: GuiasWidget.routePath,
               requireAuth: true,
               builder: (context, params) => GuiasWidget(),
+            ),
+            FFRoute(
+              name: CertificadosDigitaisWidget.routeName,
+              path: CertificadosDigitaisWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => CertificadosDigitaisWidget(),
             ),
             FFRoute(
               name: ChatWidget.routeName,

@@ -2,6 +2,8 @@ import '/app_state.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/services/nfse_list_service.dart';
+import 'nfse_billing_helpers.dart';
+import 'nfse_detail_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -31,6 +33,7 @@ class _NfseListWidgetState extends State<NfseListWidget> {
   late NfseListModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -41,18 +44,44 @@ class _NfseListWidgetState extends State<NfseListWidget> {
       _model.selectedMonth = DateTime(widget.initialYear!, widget.initialMonth!, 1);
       _model.setFilterType('month');
     }
+    _scrollController.addListener(_onBillingScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadNfseList());
   }
 
-  /// Carrega lista de NFS-e da API para o período atual do filtro. Com companyId usa API; sem companyId mantém mock.
-  Future<void> _loadNfseList() async {
+  void _onBillingScroll() {
+    if (!_scrollController.hasClients) return;
+    final companyId = context.read<FFAppState>().companyId;
+    if (companyId == null || companyId.isEmpty) return;
+    if (!_model.billingHasNext ||
+        _model.billingLoadingMore ||
+        _model.isLoading) {
+      return;
+    }
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 280) {
+      _loadNfseList(append: true);
+    }
+  }
+
+  /// Carrega NFS-e via [fn_get_company_billing_paginated_v2]. Sem `companyId` a lista fica vazia.
+  Future<void> _loadNfseList({bool append = false}) async {
     final appState = context.read<FFAppState>();
     final companyId = appState.companyId;
     if (companyId == null || companyId.isEmpty) {
       _model.nfseListFromApi = [];
+      _model.billingHasNext = false;
+      _model.billingLastLoadedPage = 0;
       if (mounted) setState(() {});
       return;
     }
+    if (append) {
+      if (!_model.billingHasNext ||
+          _model.billingLoadingMore ||
+          _model.isLoading) {
+        return;
+      }
+    }
+
     DateTime start;
     DateTime end;
     if (_model.filterType == 'range' && _model.rangeStart != null && _model.rangeEnd != null) {
@@ -65,21 +94,44 @@ class _NfseListWidgetState extends State<NfseListWidget> {
       start = DateTime(_model.selectedYear, 1, 1);
       end = DateTime(_model.selectedYear, 12, 31);
     }
-    _model.isLoading = true;
+
+    final page = append ? _model.billingLastLoadedPage + 1 : 1;
+
+    if (append) {
+      _model.billingLoadingMore = true;
+    } else {
+      _model.isLoading = true;
+      _model.billingLastLoadedPage = 0;
+    }
     if (mounted) setState(() {});
-    final list = await NfseListService.getCompanyNfseList(
+
+    final result = await NfseListService.getCompanyBillingPaginated(
       companyId: companyId,
+      page: page,
+      pageSize: NfseListService.defaultPageSize,
       startDate: start,
       endDate: end,
       companyUserId: appState.companyUserId,
     );
-    _model.nfseListFromApi = list.map((e) => e.toMap()).toList();
-    _model.isLoading = false;
-    if (mounted) setState(() {});
+
+    if (!mounted) return;
+
+    if (append) {
+      _model.nfseListFromApi.addAll(result.rows);
+      _model.billingLoadingMore = false;
+    } else {
+      _model.nfseListFromApi = List<Map<String, dynamic>>.from(result.rows);
+      _model.isLoading = false;
+    }
+    _model.billingLastLoadedPage = result.page;
+    _model.billingHasNext = result.hasNext;
+    setState(() {});
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onBillingScroll);
+    _scrollController.dispose();
     _model.dispose();
     super.dispose();
   }
@@ -554,7 +606,11 @@ class _NfseListWidgetState extends State<NfseListWidget> {
 
   Widget _buildNfseList(BuildContext context, NumberFormat currencyFormat, DateFormat dateFormat) {
     final nfseList = _model.getFilteredNfseList();
-    
+
+    if (_model.isLoading && nfseList.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (nfseList.isEmpty) {
       return Center(
         child: Column(
@@ -587,17 +643,29 @@ class _NfseListWidgetState extends State<NfseListWidget> {
       );
     }
     
-    final theme = FlutterFlowTheme.of(context);
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      itemCount: nfseList.length,
-      separatorBuilder: (_, __) => Divider(
-        height: 1,
-        color: theme.primaryText.withValues(alpha: 0.06),
-      ),
+    final extraFooter = _model.billingLoadingMore ? 1 : 0;
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      itemCount: nfseList.length + extraFooter,
       itemBuilder: (context, index) {
+        if (index >= nfseList.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+            ),
+          );
+        }
         final nfse = nfseList[index];
-        return _buildNfseCard(context, nfse, currencyFormat, dateFormat);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildNfseCard(context, nfse, currencyFormat, dateFormat),
+        );
       },
     );
   }
@@ -609,61 +677,104 @@ class _NfseListWidgetState extends State<NfseListWidget> {
     DateFormat dateFormat,
   ) {
     final theme = FlutterFlowTheme.of(context);
-    final cliente = '${nfse['cliente']}';
+    final cliente = nfseBillingCliente(nfse);
+    final numero = nfseBillingNumeroDisplay(nfse);
+    final data = nfseBillingDate(nfse['emission_date']) ??
+        nfseBillingDate(nfse['data']) ??
+        DateTime.now();
+    final valorNum = nfseBillingValor(nfse);
+
+    final subtitle = StringBuffer(dateFormat.format(data));
+    if (numero.isNotEmpty && numero != '—') {
+      subtitle.write(' · ');
+      subtitle.write(numero);
+    }
 
     return Material(
       color: Colors.transparent,
+      elevation: 0,
       child: InkWell(
         onTap: () {
-          // Abrir detalhes da NFS-e
+          context.pushNamed(
+            NfseDetailWidget.routeName,
+            extra: Map<String, dynamic>.from(nfse),
+          );
         },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  cliente,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.nunito(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: theme.primaryText,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 84,
-                child: Text(
-                  currencyFormat.format(nfse['valor']),
-                  textAlign: TextAlign.end,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.nunito(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: theme.primary,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 76,
-                child: Text(
-                  dateFormat.format(nfse['data']),
-                  textAlign: TextAlign.end,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.nunito(
-                    fontSize: 12,
-                    color: theme.secondaryText,
-                  ),
-                ),
+        borderRadius: BorderRadius.circular(14),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: theme.secondaryBackground,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: theme.primaryText.withValues(alpha: 0.07),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
               ),
             ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              cliente,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.nunito(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                height: 1.3,
+                                color: theme.primaryText,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            currencyFormat.format(valorNum),
+                            style: GoogleFonts.nunito(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: theme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        subtitle.toString(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.nunito(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: theme.secondaryText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 22,
+                  color: theme.secondaryText.withValues(alpha: 0.45),
+                ),
+              ],
+            ),
           ),
         ),
       ),
