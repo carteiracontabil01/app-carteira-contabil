@@ -1,5 +1,4 @@
 export 'reorder_items.dart' show reorderItems;
-export 'retornar_index_app_state.dart' show retornarIndexAppState;
 export 'change_status_bar_color.dart' show changeStatusBarColor;
 export 'exclui_images_action.dart' show excluiImagesAction;
 export 'set_f_c_m_token.dart' show setFCMToken;

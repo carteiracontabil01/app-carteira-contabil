@@ -247,8 +247,6 @@ dynamic deserializeParam<T>(
             return GatewaysRow(data);
           case ClientAddressRow:
             return ClientAddressRow(data);
-          case AvaliacoesEmpresaRow:
-            return AvaliacoesEmpresaRow(data);
           case ClientBusinessRow:
             return ClientBusinessRow(data);
           case BusinessRow:

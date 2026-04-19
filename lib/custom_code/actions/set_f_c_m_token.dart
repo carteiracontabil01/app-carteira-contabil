@@ -15,21 +15,16 @@ Future setFCMToken() async {
   try {
     // ⚠️ FCM Token só deve ser configurado em MOBILE (Android/iOS)
     if (kIsWeb) {
-      print('🌐 Plataforma WEB detectada - FCM Token ignorado');
       return;
     }
 
     if (!Platform.isAndroid && !Platform.isIOS) {
-      print('💻 Plataforma Desktop detectada - FCM Token ignorado');
       return;
     }
-
-    print('📱 Plataforma MOBILE detectada - Configurando FCM Token...');
 
     // O Firebase já foi inicializado no main.dart
     FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-    print('📱 Solicitando permissões de notificação...');
     NotificationSettings settings = await messaging.requestPermission(
       alert: true,
       badge: true,
@@ -39,48 +34,39 @@ Future setFCMToken() async {
     );
 
     FFAppState().fcmToken = "Verificando permissões de notificação...";
-    print('✅ Status das permissões: ${settings.authorizationStatus}');
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized ||
         settings.authorizationStatus == AuthorizationStatus.provisional) {
       FFAppState().fcmToken = "Permissões autorizadas, obtendo token...";
-      print('🔑 Permissões autorizadas, obtendo FCM token...');
 
       try {
         String? fcmToken = await messaging.getToken();
 
         if (fcmToken != null && fcmToken.isNotEmpty) {
           FFAppState().fcmToken = fcmToken;
-          print('✅ FCM Token obtido: ${fcmToken.substring(0, 30)}...');
 
           // Salvar token no banco (tabela users)
           await _saveFCMTokenToDatabase(fcmToken);
         } else {
           FFAppState().fcmToken = "Token FCM não disponível";
-          print('⚠️  FCM Token não disponível');
         }
       } catch (e) {
         FFAppState().fcmToken = "Erro ao obter token: $e";
-        print('❌ Erro ao obter FCM token: $e');
       }
     } else if (settings.authorizationStatus == AuthorizationStatus.denied) {
       FFAppState().fcmToken = "Permissões de notificação negadas";
-      print('❌ Permissões de notificação negadas pelo usuário');
     } else {
       FFAppState().fcmToken =
           "Status de permissão: ${settings.authorizationStatus}";
-      print('⚠️  Status de permissão: ${settings.authorizationStatus}');
     }
 
     // Listener para token refresh (quando token muda)
     messaging.onTokenRefresh.listen((newToken) {
-      print('🔄 FCM Token atualizado: ${newToken.substring(0, 30)}...');
       FFAppState().fcmToken = newToken;
       _saveFCMTokenToDatabase(newToken);
     });
   } catch (e) {
     FFAppState().fcmToken = "Erro na configuração FCM: $e";
-    print('❌ Erro geral na configuração FCM: $e');
   }
 }
 
@@ -90,16 +76,13 @@ Future<void> _saveFCMTokenToDatabase(String token) async {
     final userId = currentUserUid;
 
     if (userId == null || userId.isEmpty) {
-      print('⚠️  Usuário não autenticado, não pode salvar FCM token');
       return;
     }
 
     await Supabase.instance.client
         .from('users')
         .update({'fcm_token': token}).eq('id', userId);
-
-    print('✅ FCM Token salvo no banco de dados');
   } catch (e) {
-    print('❌ Erro ao salvar FCM token no banco: $e');
+    // Erro não-bloqueante: token pode ser salvo em tentativa futura.
   }
 }

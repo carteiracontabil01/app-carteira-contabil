@@ -1,10 +1,17 @@
+import '/enums/company_access_type_enum.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/services/company_profile_service.dart';
+import 'models/certificate_access_item.dart';
+import 'widgets/certificate_card.dart';
+import 'widgets/certificate_empty_state.dart';
+import 'widgets/certificate_type_tabs.dart';
 import 'certificados_digitais_model.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 export 'certificados_digitais_model.dart';
 
@@ -20,7 +27,8 @@ class CertificadosDigitaisWidget extends StatefulWidget {
       _CertificadosDigitaisWidgetState();
 }
 
-class _CertificadosDigitaisWidgetState extends State<CertificadosDigitaisWidget> {
+class _CertificadosDigitaisWidgetState
+    extends State<CertificadosDigitaisWidget> {
   late CertificadosDigitaisModel _model;
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -67,35 +75,115 @@ class _CertificadosDigitaisWidgetState extends State<CertificadosDigitaisWidget>
     setState(() {});
   }
 
-  static List<Map<String, dynamic>> _certificatesFromProfile(
-      Map<String, dynamic>? profile) {
-    if (profile == null) return [];
-    final raw = profile['certificates_access'];
-    if (raw == null) return [];
-    if (raw is List) {
-      return raw
-          .map((e) {
-            if (e is Map) {
-              return Map<String, dynamic>.from(e);
-            }
-            return <String, dynamic>{};
-          })
-          .where((m) => m.isNotEmpty)
-          .toList();
-    }
-    return [];
+  static ({String bucket, String path})? _extractStorageBucketAndPath(
+      String rawUrl) {
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null) return null;
+
+    // Formato esperado:
+    // /storage/v1/object/public/<bucket>/<path>
+    final segments = uri.pathSegments;
+    final objectIdx = segments.indexOf('object');
+    if (objectIdx == -1) return null;
+    if (segments.length <= objectIdx + 3) return null;
+
+    final visibility = segments[objectIdx + 1]; // public | sign
+    if (visibility != 'public' && visibility != 'sign') return null;
+
+    final bucket = segments[objectIdx + 2];
+    final path = segments.skip(objectIdx + 3).join('/');
+    if (bucket.isEmpty || path.isEmpty) return null;
+
+    return (bucket: bucket, path: Uri.decodeComponent(path));
   }
 
-  static String? _fmtDate(dynamic v, DateFormat fmt) {
-    if (v == null) return null;
-    if (v is DateTime) return fmt.format(v);
-    final s = v.toString();
-    if (s.isEmpty) return null;
+  Future<String> _resolveDownloadUrl(String rawUrl) async {
+    final parsed = _extractStorageBucketAndPath(rawUrl);
+    if (parsed == null) return rawUrl;
+
     try {
-      return fmt.format(DateTime.parse(s));
+      final result = await Supabase.instance.client.storage
+          .from(parsed.bucket)
+          .createSignedUrl(parsed.path, 120);
+      if (result.isNotEmpty) return result;
     } catch (_) {
-      return s;
+      // fallback abaixo
     }
+    return rawUrl;
+  }
+
+  Future<void> _downloadCertificate(String? url, String fileName) async {
+    if (url == null || url.trim().isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Este certificado não possui URL de download.',
+            style: GoogleFonts.nunito(),
+          ),
+        ),
+      );
+      return;
+    }
+    final resolvedUrl = await _resolveDownloadUrl(url.trim());
+    final uri = Uri.tryParse(resolvedUrl);
+    if (uri == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'URL de certificado inválida.',
+            style: GoogleFonts.nunito(),
+          ),
+        ),
+      );
+      return;
+    }
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Não foi possível baixar/abrir o certificado "$fileName".',
+            style: GoogleFonts.nunito(),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildCertificatesList(
+    BuildContext context,
+    FlutterFlowTheme theme,
+    List<CertificateAccessItem> certificates,
+    String emptyMessage,
+  ) {
+    return RefreshIndicator(
+      color: theme.primary,
+      onRefresh: _onRefresh,
+      child: certificates.isEmpty && !_model.isRefreshing
+          ? CertificateEmptyState(message: emptyMessage)
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: certificates.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, i) {
+                final certificate = certificates[i];
+                return CertificateCard(
+                  certificate: certificate,
+                  onDownloadPressed: certificate.downloadUrl == null ||
+                          certificate.downloadUrl!.trim().isEmpty
+                      ? null
+                      : () => _downloadCertificate(
+                            certificate.downloadUrl,
+                            certificate.name,
+                          ),
+                );
+              },
+            ),
+    );
   }
 
   @override
@@ -113,14 +201,18 @@ class _CertificadosDigitaisWidgetState extends State<CertificadosDigitaisWidget>
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         key: scaffoldKey,
-        backgroundColor: theme.primaryBackground,
+        backgroundColor: theme.grayscale20,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: theme.primary,
           automaticallyImplyLeading: false,
+          toolbarHeight: 68,
+          titleSpacing: 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
           leading: IconButton(
             icon: Icon(
               Icons.arrow_back_ios_new_rounded,
-              color: theme.primaryText,
+              color: theme.tertiary,
               size: 22,
             ),
             onPressed: () => context.safePop(),
@@ -129,17 +221,56 @@ class _CertificadosDigitaisWidgetState extends State<CertificadosDigitaisWidget>
             'Certificados digitais',
             style: GoogleFonts.nunito(
               fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: theme.primaryText,
+              fontWeight: FontWeight.w800,
+              color: theme.tertiary,
             ),
           ),
+          actions: [
+            IconButton(
+              tooltip: 'Chat',
+              onPressed: () => context.pushNamed('chat'),
+              icon: Icon(
+                Icons.chat_bubble_outline_rounded,
+                color: theme.tertiary,
+                size: 21,
+              ),
+            ),
+            IconButton(
+              onPressed: () => context.pushNamed('notificacoes'),
+              icon: Icon(
+                Icons.notifications_outlined,
+                color: theme.tertiary,
+                size: 21,
+              ),
+            ),
+          ],
           elevation: 0,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Divider(
+                height: 1, color: theme.tertiary.withValues(alpha: 0.22)),
+          ),
         ),
         body: Consumer<FFAppState>(
           builder: (context, appState, _) {
-            final certs = _certificatesFromProfile(appState.companyProfile);
-            final noCompany = appState.companyId == null ||
-                appState.companyId!.isEmpty;
+            final certificates = CertificateAccessItem.fromProfile(
+                appState.companyProfile, dateFmt);
+            final certsPj = certificates
+                .where(
+                  (certificate) =>
+                      certificate.type ==
+                      CompanyAccessTypeEnum.legalEntityCertificate,
+                )
+                .toList();
+            final certsPf = certificates
+                .where(
+                  (certificate) =>
+                      certificate.type ==
+                      CompanyAccessTypeEnum.individualCertificate,
+                )
+                .toList();
+            final noCompany =
+                appState.companyId == null || appState.companyId!.isEmpty;
 
             if (noCompany) {
               return Center(
@@ -159,161 +290,46 @@ class _CertificadosDigitaisWidgetState extends State<CertificadosDigitaisWidget>
 
             return Stack(
               children: [
-                RefreshIndicator(
-                  color: theme.primary,
-                  onRefresh: _onRefresh,
-                  child: certs.isEmpty && !_model.isRefreshing
-                      ? ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: [
-                            SizedBox(
-                              height: MediaQuery.sizeOf(context).height * 0.35,
-                            ),
-                            Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 32),
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Icons.verified_user_outlined,
-                                      size: 56,
-                                      color: theme.secondaryText
-                                          .withValues(alpha: 0.45),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'Nenhum certificado digital encontrado para esta empresa.',
-                                      textAlign: TextAlign.center,
-                                      style: GoogleFonts.nunito(
-                                        fontSize: 15,
-                                        color: theme.secondaryText,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                      : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemCount: certs.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, i) {
-                            final c = certs[i];
-                            final name =
-                                (c['name'] ?? 'Certificado').toString();
-                            final type = (c['type'] ?? '—').toString();
-                            final login =
-                                (c['user_login'] ?? '').toString().trim();
-                            final active = c['active'] == true ||
-                                c['active'] == 'true';
-                            final exp = _fmtDate(c['expiration_date'], dateFmt);
-                            final eff = _fmtDate(c['effective_date'], dateFmt);
-                            final created =
-                                _fmtDate(c['created_at'], dateFmt);
-
-                            return Material(
-                              color: theme.secondaryBackground,
-                              borderRadius: BorderRadius.circular(14),
-                              child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(10),
-                                            decoration: BoxDecoration(
-                                              color: theme.primary
-                                                  .withValues(alpha: 0.12),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Icon(
-                                              Icons.badge_outlined,
-                                              color: theme.primary,
-                                              size: 26,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 14),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  name,
-                                                  style: GoogleFonts.nunito(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: theme.primaryText,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  'Tipo: $type',
-                                                  style: GoogleFonts.nunito(
-                                                    fontSize: 13,
-                                                    color: theme.secondaryText,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: active
-                                                  ? const Color(0xFF2E7D32)
-                                                      .withValues(alpha: 0.12)
-                                                  : theme.secondaryText
-                                                      .withValues(alpha: 0.12),
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                            ),
-                                            child: Text(
-                                              active ? 'Ativo' : 'Inativo',
-                                              style: GoogleFonts.nunito(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                                color: active
-                                                    ? const Color(0xFF2E7D32)
-                                                    : theme.secondaryText,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      if (login.isNotEmpty) ...[
-                                        const SizedBox(height: 12),
-                                        _line(
-                                            context, 'Usuário', login, theme),
-                                      ],
-                                      if (exp != null)
-                                        _line(context, 'Validade', exp, theme),
-                                      if (eff != null)
-                                        _line(
-                                            context, 'Vigência', eff, theme),
-                                      if (created != null)
-                                        _line(
-                                            context, 'Cadastro', created, theme),
-                                    ],
-                                  ),
-                                ),
-                            );
-                          },
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        theme.grayscale10,
+                        theme.grayscale20,
+                      ],
+                    ),
+                  ),
+                  child: DefaultTabController(
+                    length: 2,
+                    child: Column(
+                      children: [
+                        CertificatesTypeTabs(
+                          pjCount: certsPj.length,
+                          pfCount: certsPf.length,
                         ),
+                        Expanded(
+                          child: TabBarView(
+                            children: [
+                              _buildCertificatesList(
+                                context,
+                                theme,
+                                certsPj,
+                                'Nenhum certificado PJ encontrado para esta empresa.',
+                              ),
+                              _buildCertificatesList(
+                                context,
+                                theme,
+                                certsPf,
+                                'Nenhum certificado PF encontrado para esta empresa.',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 if (_model.isRefreshing)
                   Container(
@@ -326,42 +342,6 @@ class _CertificadosDigitaisWidgetState extends State<CertificadosDigitaisWidget>
             );
           },
         ),
-      ),
-    );
-  }
-
-  Widget _line(
-    BuildContext context,
-    String label,
-    String value,
-    FlutterFlowTheme theme,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 88,
-            child: Text(
-              label,
-              style: GoogleFonts.nunito(
-                fontSize: 13,
-                color: theme.secondaryText,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: GoogleFonts.nunito(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: theme.primaryText,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

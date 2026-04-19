@@ -68,7 +68,7 @@ Orientações para otimização fiscal e crescimento sustentável do seu negóci
 
 ### Backend
 - **Supabase**: Backend como serviço (BaaS)
-  - URL: `https://mzazdlelnaarvfnertjd.supabase.co`
+  - URL e chaves carregadas por `--dart-define` (sem hardcode no app)
   - Autenticação e banco de dados PostgreSQL
   - Storage para arquivos
   - Real-time subscriptions
@@ -80,6 +80,20 @@ Orientações para otimização fiscal e crescimento sustentável do seu negóci
 ### Outras Tecnologias
 - **Firebase**: Notificações push e serviços auxiliares
 - **Stripe**: Processamento de pagamentos
+
+## 🔐 Configuração Segura de Ambiente
+
+As credenciais de runtime não ficam no código-fonte.
+
+1. Copie o template `env/dart_define.example.json` para um arquivo local:
+   - `env/dart_define.local.json`
+2. Preencha os valores reais de Supabase/Firebase.
+3. Rode o app com:
+   - `flutter run --dart-define-from-file=env/dart_define.local.json`
+4. Para build:
+   - `flutter build apk --dart-define-from-file=env/dart_define.local.json`
+
+> Importante: nunca comite arquivos `env/*.local.json` ou `env/*.secret.json`.
 
 ## 📄 Licença
 

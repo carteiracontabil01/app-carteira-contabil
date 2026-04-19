@@ -6,6 +6,7 @@ import '/app_state.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import 'email_auth.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import 'supabase_user_provider.dart';
 
@@ -14,8 +15,21 @@ export '/auth/base_auth_user_provider.dart';
 class SupabaseAuthManager extends AuthManager with EmailSignInManager {
   @override
   Future signOut() async {
+    await _clearUserImageCache();
     FFAppState().clearCompanyContext();
     return SupaFlow.client.auth.signOut();
+  }
+
+  Future<void> _clearUserImageCache() async {
+    // Garante que avatares em cache não apareçam para outro login no mesmo aparelho.
+    try {
+      await DefaultCacheManager().emptyCache();
+    } catch (_) {}
+
+    try {
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+    } catch (_) {}
   }
 
   @override

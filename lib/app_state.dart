@@ -106,6 +106,28 @@ class FFAppState extends ChangeNotifier {
       _companyUserId = prefs.getString('ff_companyUserId');
     });
     _safeInit(() {
+      final cuid = _companyUserId;
+      if (cuid == null || cuid.isEmpty) return;
+      final raw = prefs.getString('ff_companyUserProfileJson');
+      if (raw == null || raw.isEmpty) return;
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is! Map) {
+          prefs.remove('ff_companyUserProfileJson');
+          return;
+        }
+        final map = Map<String, dynamic>.from(decoded);
+        if (map['id']?.toString() != cuid) {
+          prefs.remove('ff_companyUserProfileJson');
+          return;
+        }
+        _companyUserProfile = map;
+      } catch (e) {
+        print("Can't decode ff_companyUserProfileJson: $e");
+        prefs.remove('ff_companyUserProfileJson');
+      }
+    });
+    _safeInit(() {
       _companyId = prefs.getString('ff_companyId');
     });
     _safeInit(() {
@@ -128,6 +150,7 @@ class FFAppState extends ChangeNotifier {
           return;
         }
         _companyProfile = map;
+        _userCompanies = _extractUserCompaniesFromProfile(map);
         final tid = map['tenant_id']?.toString();
         if (tid != null && tid.isNotEmpty) {
           _tenantId = tid;
@@ -471,6 +494,31 @@ class FFAppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Snapshot do company_user logado em company.company_users
+  Map<String, dynamic>? _companyUserProfile;
+  Map<String, dynamic>? get companyUserProfile => _companyUserProfile;
+
+  void setCompanyUserProfile(Map<String, dynamic>? row) {
+    _companyUserProfile = row;
+    _persistCompanyUserProfile();
+    notifyListeners();
+  }
+
+  void _persistCompanyUserProfile() {
+    try {
+      if (_companyUserProfile != null) {
+        prefs.setString(
+          'ff_companyUserProfileJson',
+          jsonEncode(_companyUserProfile),
+        );
+      } else {
+        prefs.remove('ff_companyUserProfileJson');
+      }
+    } catch (e) {
+      print('⚠️ Erro ao persistir companyUserProfile: $e');
+    }
+  }
+
   /// ID da empresa (company.companies)
   String? _companyId;
   String? get companyId => _companyId;
@@ -492,11 +540,44 @@ class FFAppState extends ChangeNotifier {
   Map<String, dynamic>? _companyProfile;
   Map<String, dynamic>? get companyProfile => _companyProfile;
 
+  /// Lista de empresas disponíveis para o usuário (vinda do companyProfile).
+  List<Map<String, String>> _userCompanies = [];
+  List<Map<String, String>> get userCompanies => List.unmodifiable(_userCompanies);
+
+  List<Map<String, String>> _extractUserCompaniesFromProfile(
+    Map<String, dynamic>? profile,
+  ) {
+    if (profile == null) return const [];
+    final dynamic rawList = profile['user_companies'] ??
+        profile['companies'] ??
+        profile['available_companies'];
+    if (rawList is! List) return const [];
+
+    final result = <Map<String, String>>[];
+    for (final item in rawList) {
+      if (item is! Map) continue;
+      final map = Map<String, dynamic>.from(item);
+      final companyId = (map['company_id'] ?? map['id'] ?? '').toString();
+      final companyUserId =
+          (map['company_user_id'] ?? map['user_id'] ?? '').toString();
+      final businessName =
+          (map['business_name'] ?? map['name'] ?? '').toString();
+      if (companyId.isEmpty || companyUserId.isEmpty) continue;
+      result.add({
+        'company_id': companyId,
+        'company_user_id': companyUserId,
+        'business_name': businessName,
+      });
+    }
+    return result;
+  }
+
   /// Atualiza o snapshot da view; persiste em [ff_companyProfileJson] quando couber.
   void setCompanyProfile(Map<String, dynamic>? row) {
     _companyProfile = row;
     try {
       if (row != null) {
+        _userCompanies = _extractUserCompaniesFromProfile(row);
         final tid = row['tenant_id']?.toString();
         if (tid != null && tid.isNotEmpty) {
           _tenantId = tid;
@@ -511,6 +592,7 @@ class FFAppState extends ChangeNotifier {
           print('⚠️ Perfil da empresa não persistido (tamanho/serialização): $e');
         }
       } else {
+        _userCompanies = [];
         prefs.remove('ff_companyProfileJson');
       }
     } catch (e) {
@@ -521,6 +603,7 @@ class FFAppState extends ChangeNotifier {
 
   void _clearCompanyProfile() {
     _companyProfile = null;
+    _userCompanies = [];
     try {
       prefs.remove('ff_companyProfileJson');
     } catch (e) {
@@ -559,6 +642,8 @@ class FFAppState extends ChangeNotifier {
   void setCompanyContext(String companyUserId, String companyId, [String? companyName]) {
     _clearCompanyProfile();
     _clearTenantUntilProfileLoaded();
+    _companyUserProfile = null;
+    _persistCompanyUserProfile();
     _companyUserId = companyUserId;
     _companyId = companyId;
     _companyName = companyName;
@@ -581,10 +666,13 @@ class FFAppState extends ChangeNotifier {
   void clearCompanyContext() {
     _clearCompanyProfile();
     _clearTenantUntilProfileLoaded();
+    _companyUserProfile = null;
+    _persistCompanyUserProfile();
     _companyUserId = null;
     _companyId = null;
     _companyName = null;
     prefs.remove('ff_companyUserId');
+    prefs.remove('ff_companyUserProfileJson');
     prefs.remove('ff_companyId');
     prefs.remove('ff_companyName');
     notifyListeners();

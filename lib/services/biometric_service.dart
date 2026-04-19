@@ -20,7 +20,6 @@ class BiometricService {
 
       return isAvailable && isDeviceSupported;
     } catch (e) {
-      print('❌ Erro ao verificar biometria: $e');
       return false;
     }
   }
@@ -30,7 +29,6 @@ class BiometricService {
     try {
       return await _localAuth.getAvailableBiometrics();
     } catch (e) {
-      print('❌ Erro ao obter tipos de biometria: $e');
       return [];
     }
   }
@@ -44,7 +42,6 @@ class BiometricService {
       final isAvailable = await isBiometricAvailable();
 
       if (!isAvailable) {
-        print('⚠️ Biometria não disponível neste dispositivo');
         return false;
       }
 
@@ -78,18 +75,10 @@ class BiometricService {
         ],
       );
 
-      if (authenticated) {
-        print('✅ Autenticação biométrica bem-sucedida');
-      } else {
-        print('❌ Autenticação biométrica falhou ou foi cancelada');
-      }
-
       return authenticated;
     } on PlatformException catch (e) {
-      print('❌ Erro de plataforma na biometria: ${e.code} - ${e.message}');
       return false;
     } catch (e) {
-      print('❌ Erro inesperado na biometria: $e');
       return false;
     }
   }
@@ -100,7 +89,6 @@ class BiometricService {
       final biometrics = await getAvailableBiometrics();
       return biometrics.isNotEmpty;
     } catch (e) {
-      print('❌ Erro ao verificar biometria cadastrada: $e');
       return false;
     }
   }

@@ -19,7 +19,7 @@ const AppConfig demoConfig = AppConfig(
   textColor: '#000000', // Preto
 
   // Assets (criar estes arquivos!)
-  logoPath: 'assets/images/logo-colorida.png',
+  logoPath: 'assets/images/ic_carteira_contabil_colorida.png',
   splashPath: 'assets/images/splash.png',
   appIconPath: 'assets/images/icone.jpg',
 

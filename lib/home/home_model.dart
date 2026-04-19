@@ -1,5 +1,6 @@
 import '/flutter_flow/flutter_flow_util.dart';
 import '/services/billing_dashboard_service.dart';
+import 'models/home_company_option.dart';
 import 'home_widget.dart' show HomeWidget;
 import 'package:flutter/material.dart';
 
@@ -71,7 +72,7 @@ class HomeModel extends FlutterFlowModel<HomeWidget> {
   List<Map<String, dynamic>> chartData = [];
 
   /// Lista de empresas do usuário (para dropdown)
-  List<Map<String, dynamic>> userCompanies = [];
+  List<HomeCompanyOption> userCompanies = [];
 
   /// Atualiza os dados a partir da resposta da API
   void setDashboardData(BillingDashboardData data) {

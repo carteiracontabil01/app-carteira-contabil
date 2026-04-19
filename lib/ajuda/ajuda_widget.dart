@@ -1,10 +1,15 @@
-import '/flutter_flow/flutter_flow_icon_button.dart';
+import '/app_state.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/home/widgets/home_surface_tokens.dart';
+import '/services/company_profile_service.dart';
+import 'ajuda_model.dart';
+import 'widgets/help_menu_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'ajuda_model.dart';
+
 export 'ajuda_model.dart';
 
 class AjudaWidget extends StatefulWidget {
@@ -19,15 +24,14 @@ class AjudaWidget extends StatefulWidget {
 
 class _AjudaWidgetState extends State<AjudaWidget> {
   late AjudaModel _model;
-
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => AjudaModel());
-
-    WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureProfile());
   }
 
   @override
@@ -36,229 +40,280 @@ class _AjudaWidgetState extends State<AjudaWidget> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          automaticallyImplyLeading: false,
-          leading: FlutterFlowIconButton(
-            borderRadius: 30.0,
-            buttonSize: 60.0,
-            icon: Icon(
-              Icons.arrow_back_rounded,
-              color: FlutterFlowTheme.of(context).primaryText,
-              size: 30.0,
-            ),
-            onPressed: () async {
-              context.pop();
-            },
-          ),
-          title: Text(
-            'Ajuda e Suporte',
-            style: FlutterFlowTheme.of(context).headlineSmall.override(
-                  font: GoogleFonts.nunito(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  color: FlutterFlowTheme.of(context).primaryText,
-                  letterSpacing: 0.0,
-                ),
-          ),
-          centerTitle: true,
-          elevation: 0.0,
-        ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Tickets
-                _buildMenuItem(
-                  context,
-                  icon: Icons.confirmation_number_outlined,
-                  title: 'Meus Tickets',
-                  subtitle: 'Acompanhe seus chamados',
-                  onTap: () {
-                    context.pushNamed('tickets');
-                  },
-                ),
-                _buildMenuItem(
-                  context,
-                  icon: Icons.add_box_outlined,
-                  title: 'Abrir Novo Ticket',
-                  subtitle: 'Relate um problema ou dúvida',
-                  onTap: () {
-                    context.pushNamed('suporte');
-                  },
-                ),
+  Future<void> _ensureProfile() async {
+    final appState = context.read<FFAppState>();
+    final companyId = appState.companyId;
+    final companyUserId = appState.companyUserId;
+    final profile = appState.companyProfile;
+    final hasAccountingOffice =
+        profile?['accounting_offices'] is Map || profile?['accounting_office'] is Map;
 
-                // Divider
-                Padding(
-                  padding: EdgeInsetsDirectional.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
-                  child: Divider(
-                    color: FlutterFlowTheme.of(context).grayscale20,
-                  ),
-                ),
+    if (companyId == null ||
+        companyId.isEmpty ||
+        companyUserId == null ||
+        companyUserId.isEmpty ||
+        hasAccountingOffice) {
+      return;
+    }
 
-                // Contato
-                _buildMenuItem(
-                  context,
-                  icon: Icons.phone_outlined,
-                  title: 'Telefone',
-                  subtitle: '0800 123 4567',
-                  onTap: () async {
-                    final Uri phoneUri =
-                        Uri(scheme: 'tel', path: '08001234567');
-                    if (await canLaunchUrl(phoneUri)) {
-                      await launchUrl(phoneUri);
-                    }
-                  },
-                ),
-                _buildMenuItem(
-                  context,
-                  icon: Icons.email_outlined,
-                  title: 'E-mail',
-                  subtitle: 'suporte@carteiracontabil.com.br',
-                  onTap: () async {
-                    final Uri emailUri = Uri(
-                      scheme: 'mailto',
-                      path: 'suporte@carteiracontabil.com.br',
-                      query: 'subject=Ajuda - Carteira Contábil',
-                    );
-                    if (await canLaunchUrl(emailUri)) {
-                      await launchUrl(emailUri);
-                    }
-                  },
-                ),
-                _buildMenuItem(
-                  context,
-                  icon: Icons.chat_bubble_outline_rounded,
-                  title: 'WhatsApp',
-                  subtitle: '(00) 90000-0000',
-                  onTap: () async {
-                    final Uri whatsappUri = Uri.parse(
-                        'https://wa.me/5500900000000?text=Olá,%20preciso%20de%20ajuda');
-                    if (await canLaunchUrl(whatsappUri)) {
-                      await launchUrl(whatsappUri,
-                          mode: LaunchMode.externalApplication);
-                    }
-                  },
-                ),
+    _isRefreshing = true;
+    if (mounted) setState(() {});
 
-                // Divider
-                Padding(
-                  padding: EdgeInsetsDirectional.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
-                  child: Divider(
-                    color: FlutterFlowTheme.of(context).grayscale20,
-                  ),
-                ),
+    await CompanyProfileService.refreshIntoAppState(
+      companyId: companyId,
+      companyUserId: companyUserId,
+    );
 
-                // Links Úteis
-                _buildMenuItem(
-                  context,
-                  icon: Icons.description_outlined,
-                  title: 'Termos de Uso',
-                  subtitle: 'Leia nossos termos de uso',
-                  onTap: () {
-                    context.pushNamed('termosUso');
-                  },
-                ),
-                _buildMenuItem(
-                  context,
-                  icon: Icons.privacy_tip_outlined,
-                  title: 'Política de Privacidade',
-                  subtitle: 'Leia nossa política de privacidade',
-                  onTap: () {
-                    context.pushNamed('politicaPrivacidade');
-                  },
-                ),
-                _buildMenuItem(
-                  context,
-                  icon: Icons.assignment_return_outlined,
-                  title: 'Política de Devolução',
-                  subtitle: 'Conheça nossa política de devolução',
-                  onTap: () {
-                    context.pushNamed('politicaDevolucao');
-                  },
-                ),
+    if (!mounted) return;
+    _isRefreshing = false;
+    setState(() {});
+  }
 
-                SizedBox(height: 24.0),
-              ],
-            ),
+  Future<void> _openPhone(String phone) async {
+    final sanitized = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    if (sanitized.isEmpty) {
+      _showContactUnavailable('Telefone');
+      return;
+    }
+
+    final phoneUri = Uri(scheme: 'tel', path: sanitized);
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    } else {
+      _showContactUnavailable('Telefone');
+    }
+  }
+
+  Future<void> _openEmail(String email) async {
+    final sanitized = email.trim();
+    if (sanitized.isEmpty || !sanitized.contains('@')) {
+      _showContactUnavailable('E-mail');
+      return;
+    }
+
+    final emailUri = Uri(
+      scheme: 'mailto',
+      path: sanitized,
+      query: 'subject=Ajuda - Carteira Contábil',
+    );
+    if (await canLaunchUrl(emailUri)) {
+      await launchUrl(emailUri);
+    } else {
+      _showContactUnavailable('E-mail');
+    }
+  }
+
+  Future<void> _openWhatsApp(String whatsapp) async {
+    var digits = whatsapp.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) {
+      _showContactUnavailable('WhatsApp');
+      return;
+    }
+
+    if (!digits.startsWith('55')) {
+      digits = '55$digits';
+    }
+
+    final whatsappUri = Uri.parse(
+      'https://wa.me/$digits?text=Olá,%20preciso%20de%20ajuda',
+    );
+    if (await canLaunchUrl(whatsappUri)) {
+      await launchUrl(
+        whatsappUri,
+        mode: LaunchMode.externalApplication,
+      );
+    } else {
+      _showContactUnavailable('WhatsApp');
+    }
+  }
+
+  void _showContactUnavailable(String channel) {
+    if (!mounted) return;
+
+    final theme = FlutterFlowTheme.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '$channel indisponível para esta empresa.',
+          style: GoogleFonts.nunito(
+            color: theme.tertiary,
+            fontWeight: FontWeight.w700,
           ),
         ),
+        backgroundColor: theme.primary,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
-  Widget _buildMenuItem(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
+  String _formatPhoneForDisplay(String value) {
+    final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return '';
+
+    // Remove country code (55) when present.
+    final normalized =
+        digits.length > 11 && digits.startsWith('55') ? digits.substring(2) : digits;
+
+    if (normalized.length == 11) {
+      return '(${normalized.substring(0, 2)}) '
+          '${normalized.substring(2, 7)}-${normalized.substring(7, 11)}';
+    }
+
+    if (normalized.length == 10) {
+      return '(${normalized.substring(0, 2)}) '
+          '${normalized.substring(2, 6)}-${normalized.substring(6, 10)}';
+    }
+
+    return value;
+  }
+
+  Widget _buildSection({
+    required BuildContext context,
+    required List<Widget> children,
   }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsetsDirectional.fromSTEB(16.0, 16.0, 16.0, 16.0),
-        child: Row(
-          children: [
-            Container(
-              width: 48.0,
-              height: 48.0,
-              decoration: BoxDecoration(
-                color: FlutterFlowTheme.of(context).grayscale20,
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              child: Icon(
-                icon,
-                size: 24.0,
-                color: FlutterFlowTheme.of(context).primaryText,
-              ),
+    final theme = FlutterFlowTheme.of(context);
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      decoration: HomeSurfaceTokens.cardDecoration(theme, radius: 20),
+      child: Column(children: children),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final appState = context.watch<FFAppState>();
+    final profile = appState.companyProfile;
+    final accountingOfficeRaw =
+        profile?['accounting_offices'] ?? profile?['accounting_office'];
+    final accountingOffice = accountingOfficeRaw is Map
+        ? Map<String, dynamic>.from(accountingOfficeRaw)
+        : null;
+
+    final phone = accountingOffice?['contact_phone']?.toString().trim() ?? '';
+    final email = accountingOffice?['contact_email']?.toString().trim() ?? '';
+    final whatsapp =
+        accountingOffice?['contact_whatsapp']?.toString().trim() ?? '';
+
+    final phoneLabel =
+        phone.isNotEmpty ? _formatPhoneForDisplay(phone) : 'Não informado';
+    final emailLabel = email.isNotEmpty ? email : 'Não informado';
+    final whatsappLabel =
+        whatsapp.isNotEmpty ? _formatPhoneForDisplay(whatsapp) : 'Não informado';
+
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        key: scaffoldKey,
+        backgroundColor: theme.grayscale20,
+        appBar: AppBar(
+          backgroundColor: theme.primary,
+          surfaceTintColor: Colors.transparent,
+          scrolledUnderElevation: 0,
+          toolbarHeight: 68,
+          titleSpacing: 0,
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: theme.tertiary,
+              size: 22,
             ),
-            SizedBox(width: 16.0),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: FlutterFlowTheme.of(context).bodyLarge.override(
-                          font: GoogleFonts.nunito(
-                            fontWeight: FontWeight.w600,
-                          ),
-                          color: FlutterFlowTheme.of(context).primaryText,
-                          letterSpacing: 0.0,
-                        ),
-                  ),
-                  SizedBox(height: 2.0),
-                  Text(
-                    subtitle,
-                    style: FlutterFlowTheme.of(context).bodySmall.override(
-                          font: GoogleFonts.nunito(),
-                          color: FlutterFlowTheme.of(context).secondaryText,
-                          letterSpacing: 0.0,
-                        ),
-                  ),
+            onPressed: () => context.safePop(),
+          ),
+          title: Text(
+            'Ajuda e Suporte',
+            style: GoogleFonts.nunito(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: theme.tertiary,
+            ),
+          ),
+          centerTitle: true,
+          elevation: 0,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Divider(
+              height: 1,
+              color: theme.tertiary.withValues(alpha: 0.22),
+            ),
+          ),
+        ),
+        body: SafeArea(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  theme.grayscale10,
+                  theme.grayscale20,
                 ],
               ),
             ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 16.0,
-              color: FlutterFlowTheme.of(context).secondaryText,
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(0, 16, 0, 20),
+                  child: Column(
+                    children: [
+                      _buildSection(
+                        context: context,
+                        children: [
+                          HelpMenuTile(
+                            icon: Icons.phone_outlined,
+                            title: 'Telefone',
+                            subtitle: phoneLabel,
+                            onTap: () => _openPhone(phone),
+                            showDivider: true,
+                          ),
+                          HelpMenuTile(
+                            icon: Icons.email_outlined,
+                            title: 'E-mail',
+                            subtitle: emailLabel,
+                            onTap: () => _openEmail(email),
+                            showDivider: true,
+                          ),
+                          HelpMenuTile(
+                            icon: Icons.chat_bubble_outline_rounded,
+                            title: 'WhatsApp',
+                            subtitle: whatsappLabel,
+                            onTap: () => _openWhatsApp(whatsapp),
+                          ),
+                        ],
+                      ),
+                      _buildSection(
+                        context: context,
+                        children: [
+                          HelpMenuTile(
+                            icon: Icons.description_outlined,
+                            title: 'Termos de Uso',
+                            subtitle: 'Leia nossos termos de uso',
+                            onTap: () => context.pushNamed('termosUso'),
+                            showDivider: true,
+                          ),
+                          HelpMenuTile(
+                            icon: Icons.privacy_tip_outlined,
+                            title: 'Política de Privacidade',
+                            subtitle: 'Leia nossa política de privacidade',
+                            onTap: () =>
+                                context.pushNamed('politicaPrivacidade'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (_isRefreshing)
+                  Container(
+                    color: Colors.black12,
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

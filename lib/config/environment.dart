@@ -21,25 +21,19 @@ const String ENVIRONMENT = String.fromEnvironment(
 
 /// Retorna a configuração do app baseada no environment
 AppConfig getAppConfig() {
-  print('🔧 Carregando environment: $ENVIRONMENT');
-
   switch (ENVIRONMENT) {
     case 'demo':
-      print('✅ Usando configuração: Demo Delivery');
       return demoConfig;
 
     // case 'lopes':
-    //   print('✅ Usando configuração: Lopes Supermercado');
     //   return lopesConfig;
 
     // case 'mercado':
-    //   print('✅ Usando configuração: Mercado Central');
     //   return mercadoConfig;
 
     // Adicione novos cases aqui conforme criar novos environments
 
     default:
-      print('⚠️  Environment "$ENVIRONMENT" não encontrado, usando Demo');
       return demoConfig;
   }
 }

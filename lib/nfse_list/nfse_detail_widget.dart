@@ -1,6 +1,8 @@
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import 'nfse_billing_helpers.dart';
+import 'widgets/nfse_detail_download_actions.dart';
+import 'widgets/nfse_detail_summary_card.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -30,7 +32,8 @@ class _NfseDetailWidgetState extends State<NfseDetailWidget> {
     if (!ok) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Não foi possível abrir o link.', style: GoogleFonts.nunito()),
+          content: Text('Não foi possível abrir o link.',
+              style: GoogleFonts.nunito()),
         ),
       );
     }
@@ -41,6 +44,7 @@ class _NfseDetailWidgetState extends State<NfseDetailWidget> {
     final theme = FlutterFlowTheme.of(context);
     final b = widget.billing;
     final params = nfseParametersMap(b);
+    final breakdown = nfseBillingBreakdown(b);
     final currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
     final dateFmt = DateFormat('dd/MM/yyyy');
 
@@ -52,23 +56,17 @@ class _NfseDetailWidgetState extends State<NfseDetailWidget> {
     final verified = b['verified_code']?.toString();
     final refNum = b['ref_number']?.toString();
 
-    final gross = params != null
-        ? nfseBillingToDouble(params['gross_value'])
-        : nfseBillingValor(b);
-    final net = params != null
-        ? nfseBillingToDouble(params['net_value'])
-        : nfseBillingToDouble(b['net_value']);
-    final taxFromParams = nfseSumTaxesFromParameters(params);
-    final taxTotal = taxFromParams > 0
-        ? taxFromParams
-        : nfseBillingToDouble(b['total_tax_value']);
+    final gross = breakdown.grossValue;
+    final net = breakdown.netValue;
+    final taxTotal = breakdown.taxTotal;
 
     Map<String, dynamic>? customer;
     final cr = b['customer'];
     if (cr is Map) customer = Map<String, dynamic>.from(cr);
 
-    final serviceDesc =
-        params?['service_description']?.toString() ?? b['servico']?.toString() ?? '—';
+    final serviceDesc = params?['service_description']?.toString() ??
+        b['servico']?.toString() ??
+        '—';
     final serviceValue = params != null
         ? nfseBillingToDouble(params['service_value'])
         : nfseBillingValor(b);
@@ -76,229 +74,197 @@ class _NfseDetailWidgetState extends State<NfseDetailWidget> {
     final pdfUrl = nfsePdfUrl(b);
     final xmlUrl = nfseXmlUrl(b);
 
-    final hasRetentionDetail = params != null &&
-        (nfseBillingToDouble(params['iss_retention']) > 0 ||
-            nfseBillingToDouble(params['inss_retention']) > 0 ||
-            nfseBillingToDouble(params['irrf_retention']) > 0);
+    final taxItems = _sortTaxItems(breakdown.taxItems);
 
     final dividerColor = theme.primaryText.withValues(alpha: 0.08);
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: theme.primaryBackground,
+        backgroundColor: theme.grayscale20,
         appBar: AppBar(
-          backgroundColor: theme.primaryBackground,
+          backgroundColor: theme.primary,
           surfaceTintColor: Colors.transparent,
+          scrolledUnderElevation: 0,
           elevation: 0,
-          toolbarHeight:
-              typeLabel != null && typeLabel.isNotEmpty ? 72 : kToolbarHeight,
+          toolbarHeight: 68,
+          titleSpacing: 16,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.primaryText, size: 22),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: theme.tertiary,
+              size: 22,
+            ),
             onPressed: () => context.safePop(),
           ),
-          title: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                numero,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.nunito(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.3,
-                  color: theme.primaryText,
-                ),
-              ),
-              if (typeLabel != null && typeLabel.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(
-                  typeLabel,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.nunito(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: theme.secondaryText,
-                  ),
-                ),
-              ],
-            ],
+          title: Text(
+            'Detalhes da NFS-e',
+            style: GoogleFonts.nunito(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: theme.tertiary,
+            ),
           ),
-          centerTitle: true,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Divider(
+              height: 1,
+              color: theme.tertiary.withValues(alpha: 0.22),
+            ),
+          ),
         ),
-        body: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _statusChip(
-                        context,
-                        nfseStatusLabel(status),
-                        isSuccess: status?.toUpperCase() == 'AUTHORIZED',
-                      ),
-                      if (origin != null && origin.isNotEmpty)
-                        _statusChip(
-                          context,
-                          nfseOriginLabel(origin),
-                          isSuccess: false,
-                          muted: true,
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 22),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: FilledButton.icon(
-                      onPressed: pdfUrl != null ? () => _launch(pdfUrl) : null,
-                      icon: const Icon(Icons.picture_as_pdf_outlined, size: 22),
-                      label: Text(
-                        'Baixar PDF',
-                        style: GoogleFonts.nunito(fontSize: 16, fontWeight: FontWeight.w700),
-                      ),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: theme.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                theme.grayscale10,
+                theme.grayscale20,
+              ],
+            ),
+          ),
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    NfseDetailSummaryCard(
+                      numero: numero,
+                      typeLabel: typeLabel,
+                      emission: dateFmt.format(emission),
+                      netValue:
+                          currency.format(net > 0 ? net : nfseBillingValor(b)),
+                      statusLabel: nfseStatusLabel(status),
+                      isAuthorized: status?.toUpperCase() == 'AUTHORIZED',
+                      originLabel: origin != null && origin.isNotEmpty
+                          ? nfseOriginLabel(origin)
+                          : null,
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: OutlinedButton.icon(
-                      onPressed: xmlUrl != null ? () => _launch(xmlUrl) : null,
-                      icon: Icon(Icons.code_rounded, size: 22, color: theme.primary),
-                      label: Text(
-                        'Baixar XML',
-                        style: GoogleFonts.nunito(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: theme.primary,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: theme.primary.withValues(alpha: 0.45)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
+                    const SizedBox(height: 14),
+                    NfseDetailDownloadActions(
+                      onDownloadPdf:
+                          pdfUrl != null ? () => _launch(pdfUrl) : null,
+                      onDownloadXml:
+                          xmlUrl != null ? () => _launch(xmlUrl) : null,
                     ),
-                  ),
-                  const SizedBox(height: 28),
-                  _sectionLabel(context, 'Informações gerais'),
-                  _groupedCard(
-                    context,
-                    dividerColor,
-                    _infoGeraisTiles(
+                    const SizedBox(height: 28),
+                    _sectionLabel(context, 'Informações gerais'),
+                    _groupedCard(
                       context,
-                      dateFmt: dateFmt,
-                      emission: emission,
-                      verified: verified,
-                      refNum: refNum,
+                      dividerColor,
+                      _infoGeraisTiles(
+                        context,
+                        dateFmt: dateFmt,
+                        emission: emission,
+                        verified: verified,
+                        refNum: refNum,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 22),
-                  _sectionLabel(context, 'Tomador'),
-                  _groupedCard(
-                    context,
-                    dividerColor,
-                    _tomadorTiles(context, customer, b),
-                  ),
-                  const SizedBox(height: 22),
-                  _sectionLabel(context, 'Serviço'),
-                  _groupedCard(
-                    context,
-                    dividerColor,
-                    [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                        child: Text(
-                          serviceDesc,
-                          style: GoogleFonts.nunito(
-                            fontSize: 15,
-                            height: 1.45,
-                            color: theme.primaryText,
+                    const SizedBox(height: 22),
+                    _sectionLabel(context, 'Tomador'),
+                    _groupedCard(
+                      context,
+                      dividerColor,
+                      _tomadorTiles(context, customer, b),
+                    ),
+                    const SizedBox(height: 22),
+                    _sectionLabel(context, 'Serviço'),
+                    _groupedCard(
+                      context,
+                      dividerColor,
+                      [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                          child: Text(
+                            serviceDesc,
+                            style: GoogleFonts.nunito(
+                              fontSize: 15,
+                              height: 1.45,
+                              color: theme.primaryText,
+                            ),
                           ),
                         ),
-                      ),
-                      _mobileField(
-                        context,
-                        'Valor do serviço',
-                        currency.format(serviceValue),
-                        isLast: true,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 22),
-                  _sectionLabel(context, 'Valores'),
-                  _groupedCard(
-                    context,
-                    dividerColor,
-                    [
-                      _financeRow(
-                        context,
-                        'Valor bruto',
-                        currency.format(gross > 0 ? gross : nfseBillingValor(b)),
-                        theme.info,
-                      ),
-                      _financeRow(
-                        context,
-                        'Total de impostos',
-                        currency.format(taxTotal),
-                        theme.error,
-                        valueColor: theme.error,
-                      ),
-                      _financeRow(
-                        context,
-                        'Valor líquido',
-                        currency.format(net > 0 ? net : nfseBillingValor(b)),
-                        theme.success,
-                        valueColor: theme.success,
-                        isLast: true,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 22),
-                  _sectionLabel(context, 'Impostos'),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: theme.secondaryBackground,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: theme.primaryText.withValues(alpha: 0.06),
-                      ),
+                        _mobileField(
+                          context,
+                          'Valor do serviço',
+                          currency.format(serviceValue),
+                          isLast: true,
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      hasRetentionDetail
-                          ? 'Retenções informadas nos parâmetros desta NFS-e.'
-                          : 'Nenhuma retenção registrada para esta NFS-e.',
-                      style: GoogleFonts.nunito(
-                        fontSize: 14,
-                        height: 1.4,
-                        color: theme.secondaryText,
-                      ),
+                    const SizedBox(height: 22),
+                    _sectionLabel(context, 'Valores'),
+                    _groupedCard(
+                      context,
+                      dividerColor,
+                      [
+                        _financeRow(
+                          context,
+                          'Valor bruto',
+                          currency
+                              .format(gross > 0 ? gross : nfseBillingValor(b)),
+                          theme.info,
+                        ),
+                        _financeRow(
+                          context,
+                          'Total de impostos',
+                          currency.format(taxTotal),
+                          theme.error,
+                          valueColor: theme.error,
+                        ),
+                        _financeRow(
+                          context,
+                          'Valor líquido',
+                          currency.format(net > 0 ? net : nfseBillingValor(b)),
+                          theme.success,
+                          valueColor: theme.success,
+                          isLast: true,
+                        ),
+                      ],
                     ),
-                  ),
-                ]),
+                    const SizedBox(height: 22),
+                    _sectionLabel(context, 'Impostos'),
+                    _groupedCard(
+                      context,
+                      dividerColor,
+                      [
+                        _mobileField(
+                          context,
+                          'Total de impostos',
+                          currency.format(taxTotal),
+                        ),
+                        if (taxItems.isEmpty)
+                          _mobileField(
+                            context,
+                            'Detalhamento',
+                            'Nenhum imposto adicional registrado para esta NFS-e.',
+                            isLast: true,
+                          )
+                        else
+                          ...List<Widget>.generate(taxItems.length, (index) {
+                            final item = taxItems[index];
+                            final aliquotSuffix = item.aliquot != null
+                                ? ' (${_formatAliquot(item.aliquot!)}%)'
+                                : '';
+                            return _taxBreakdownRow(
+                              context,
+                              label: '${item.label}$aliquotSuffix',
+                              value: currency.format(item.value),
+                              accent: _taxAccentColor(theme, item.key),
+                              icon: _taxIcon(item.key),
+                              isLast: index == taxItems.length - 1,
+                            );
+                          }),
+                      ],
+                    ),
+                  ]),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -323,7 +289,8 @@ class _NfseDetailWidgetState extends State<NfseDetailWidget> {
       ),
       MapEntry('CNPJ', customer['cnpj']?.toString() ?? '—'),
       MapEntry('E-mail', customer['business_email']?.toString() ?? '—'),
-      MapEntry('Telefone', customer['business_phone_number']?.toString() ?? '—'),
+      MapEntry(
+          'Telefone', customer['business_phone_number']?.toString() ?? '—'),
     ];
     return List<Widget>.generate(rows.length, (i) {
       return _mobileField(
@@ -371,7 +338,7 @@ class _NfseDetailWidgetState extends State<NfseDetailWidget> {
           fontSize: 12,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.8,
-          color: theme.secondaryText,
+          color: theme.primary,
         ),
       ),
     );
@@ -387,7 +354,7 @@ class _NfseDetailWidgetState extends State<NfseDetailWidget> {
       decoration: BoxDecoration(
         color: theme.secondaryBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.primaryText.withValues(alpha: 0.06)),
+        border: Border.all(color: theme.grayscale30),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -435,7 +402,7 @@ class _NfseDetailWidgetState extends State<NfseDetailWidget> {
               fontSize: 16,
               fontWeight: FontWeight.w600,
               height: 1.3,
-              color: theme.primaryText,
+              color: theme.primary,
             ),
           ),
           if (!isLast) const SizedBox(height: 14),
@@ -496,32 +463,111 @@ class _NfseDetailWidgetState extends State<NfseDetailWidget> {
     );
   }
 
-  Widget _statusChip(
-    BuildContext context,
-    String text, {
-    required bool isSuccess,
-    bool muted = false,
+  String _formatAliquot(double value) {
+    var text = value.toStringAsFixed(4);
+    text = text.replaceFirst(RegExp(r'0+$'), '');
+    text = text.replaceFirst(RegExp(r'\.$'), '');
+    return text;
+  }
+
+  List<NfseTaxItem> _sortTaxItems(List<NfseTaxItem> items) {
+    const order = <String, int>{
+      'iss': 0,
+      'inss': 1,
+      'irrf': 2,
+      'csll': 3,
+      'cofins': 4,
+      'pis': 5,
+      'outras_retencoes': 6,
+    };
+    final sorted = List<NfseTaxItem>.from(items);
+    sorted.sort(
+      (a, b) => (order[a.key] ?? 99).compareTo(order[b.key] ?? 99),
+    );
+    return sorted;
+  }
+
+  IconData _taxIcon(String key) {
+    switch (key) {
+      case 'iss':
+        return Icons.account_balance_rounded;
+      case 'inss':
+        return Icons.shield_outlined;
+      case 'irrf':
+        return Icons.request_quote_rounded;
+      case 'csll':
+        return Icons.account_balance_wallet_outlined;
+      case 'cofins':
+        return Icons.pie_chart_outline_rounded;
+      case 'pis':
+        return Icons.percent_rounded;
+      default:
+        return Icons.more_horiz_rounded;
+    }
+  }
+
+  Color _taxAccentColor(FlutterFlowTheme theme, String key) {
+    switch (key) {
+      case 'iss':
+        return theme.info;
+      case 'inss':
+        return theme.warning;
+      case 'irrf':
+        return theme.error;
+      case 'csll':
+        return theme.alternate;
+      case 'cofins':
+        return theme.secondary;
+      case 'pis':
+        return theme.primary;
+      default:
+        return theme.grayscale70;
+    }
+  }
+
+  Widget _taxBreakdownRow(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required Color accent,
+    required IconData icon,
+    bool isLast = false,
   }) {
     final theme = FlutterFlowTheme.of(context);
-    final bg = isSuccess
-        ? const Color(0xFFE8F5E9)
-        : (muted ? theme.grayscale20 : theme.primary.withValues(alpha: 0.1));
-    final fg = isSuccess
-        ? const Color(0xFF2E7D32)
-        : (muted ? theme.secondaryText : theme.primaryText);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.nunito(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: fg,
-        ),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 12, 16, isLast ? 16 : 0),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: accent),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: GoogleFonts.nunito(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: theme.primaryText,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            value,
+            style: GoogleFonts.nunito(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: accent,
+            ),
+          ),
+        ],
       ),
     );
   }

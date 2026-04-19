@@ -17,22 +17,17 @@ bool _pushNotificationsInitialized = false;
 Future inicializarPushNotificationsSeguro() async {
   // ⚠️ Push notifications só devem ser configuradas em MOBILE (Android/iOS)
   if (kIsWeb) {
-    print('🌐 Plataforma WEB detectada - Push notifications ignoradas');
     return;
   }
 
   if (!Platform.isAndroid && !Platform.isIOS) {
-    print('💻 Plataforma Desktop detectada - Push notifications ignoradas');
     return;
   }
 
   // Evita múltiplas inicializações
   if (_pushNotificationsInitialized) {
-    print('🔔 Push notifications já inicializadas');
     return;
   }
-
-  print('🚀 Iniciando configuração segura de push notifications MOBILE...');
 
   try {
     // Aguarda um tempo para garantir que o app esteja pronto
@@ -40,9 +35,6 @@ Future inicializarPushNotificationsSeguro() async {
 
     // Verifica se o contexto está disponível
     if (appNavigatorKey.currentContext == null) {
-      print(
-          '⚠️  Contexto não disponível na primeira tentativa, reagendando...');
-
       // Agenda nova tentativa após delay maior
       Future.delayed(Duration(seconds: 3), () async {
         if (!_pushNotificationsInitialized) {
@@ -55,8 +47,6 @@ Future inicializarPushNotificationsSeguro() async {
     // Se chegou aqui, o contexto está disponível
     await _executarInicializacao();
   } catch (e) {
-    print('❌ Erro na inicialização segura: $e');
-
     // Tenta novamente após um delay
     Future.delayed(Duration(seconds: 5), () async {
       if (!_pushNotificationsInitialized) {
@@ -72,8 +62,6 @@ Future _tentarInicializarComRetry() async {
 
   while (tentativas < maxTentativas && !_pushNotificationsInitialized) {
     tentativas++;
-    print(
-        '🔄 Tentativa $tentativas de $maxTentativas para inicializar push notifications');
 
     try {
       // Aguarda progressivamente mais tempo a cada tentativa
@@ -82,36 +70,19 @@ Future _tentarInicializarComRetry() async {
       if (appNavigatorKey.currentContext != null) {
         await _executarInicializacao();
         break;
-      } else {
-        print('⚠️  Contexto ainda não disponível na tentativa $tentativas');
       }
-    } catch (e) {
-      print('❌ Erro na tentativa $tentativas: $e');
-    }
-  }
-
-  if (!_pushNotificationsInitialized) {
-    print(
-        '❌ Falha ao inicializar push notifications após $maxTentativas tentativas');
+    } catch (e) {}
   }
 }
 
 Future _executarInicializacao() async {
-  try {
-    print('⚙️  Executando inicialização das push notifications...');
+  // Primeiro configura os listeners
+  await onPushNotificationOpened();
 
-    // Primeiro configura os listeners
-    await onPushNotificationOpened();
+  // Depois configura o FCM token
+  await setFCMToken();
 
-    // Depois configura o FCM token
-    await setFCMToken();
-
-    _pushNotificationsInitialized = true;
-    print('✅ Push notifications inicializadas com sucesso!');
-  } catch (e) {
-    print('❌ Erro na execução da inicialização: $e');
-    throw e;
-  }
+  _pushNotificationsInitialized = true;
 }
 
 /// Verifica se já foi inicializado (útil para debugging)
@@ -121,7 +92,6 @@ bool isPushNotificationsInitialized() {
 
 /// Força reinicialização (útil para debugging)
 Future reinicializarPushNotifications() async {
-  print('🔄 Forçando reinicialização das push notifications...');
   _pushNotificationsInitialized = false;
   await inicializarPushNotificationsSeguro();
 }

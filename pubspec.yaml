@@ -185,11 +185,11 @@ flutter_native_splash:
   color: "#15203D"
   
   # Logo/imagem da splash (centralizado)
-  image: assets/images/logo-colorida.png
+  image: assets/images/ic_carteira_contabil_white.png
   
   # Cor do ícone branding (Android 12+)
   color_dark: "#15203D"
-  image_dark: assets/images/logo-colorida.png
+  image_dark: assets/images/ic_carteira_contabil_white.png
   
   # Ativar para Android e iOS
   android: true
@@ -198,7 +198,7 @@ flutter_native_splash:
   
   # Configuração específica para Android 12+ (Material You)
   android_12:
-    image: assets/images/logo-colorida.png
+    image: assets/images/ic_carteira_contabil_white.png
     color: "#15203D"
     icon_background_color: "#15203D"
     

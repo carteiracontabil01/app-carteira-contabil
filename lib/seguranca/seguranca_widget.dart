@@ -1,12 +1,17 @@
 import '/auth/supabase_auth/auth_util.dart';
-import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/home/widgets/home_surface_tokens.dart';
 import '/services/biometric_service.dart';
 import '/services/secure_storage_service.dart';
+import 'seguranca_model.dart';
+import 'widgets/biometric_credentials_dialog.dart';
+import 'widgets/security_info_card.dart';
+import 'widgets/security_intro_card.dart';
+import 'widgets/security_option_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'seguranca_model.dart';
+
 export 'seguranca_model.dart';
 
 class SegurancaWidget extends StatefulWidget {
@@ -19,252 +24,122 @@ class SegurancaWidget extends StatefulWidget {
   State<SegurancaWidget> createState() => _SegurancaWidgetState();
 }
 
-class _SegurancaWidgetState extends State<SegurancaWidget>
-    with WidgetsBindingObserver {
+class _SegurancaWidgetState extends State<SegurancaWidget> {
   late SegurancaModel _model;
-
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Biometria
   final _biometricService = BiometricService();
   final _secureStorage = SecureStorageService();
+
   bool _biometricAvailable = false;
   bool _biometricEnabled = false;
   String _biometricType = 'Biometria';
+  bool _isTogglingBiometric = false;
 
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => SegurancaModel());
-    _checkBiometricStatus();
-
-    // Adicionar observer do ciclo de vida do app
-    WidgetsBinding.instance.addObserver(this);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
+    _loadBiometricState();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-
-    // Quando o app volta ao primeiro plano, atualizar dados do usuário
-    if (state == AppLifecycleState.resumed) {
-      _refreshUserData();
-    }
-  }
-
-  Future<void> _refreshUserData() async {
-    try {
-      await currentUser?.refreshUser();
-      if (mounted) {
-        setState(() {}); // Força rebuild com novos dados
-      }
-    } catch (e) {
-      // Silenciar erros de refresh
-    }
-  }
-
-  Future<void> _checkBiometricStatus() async {
+  Future<void> _loadBiometricState() async {
     final isAvailable = await _biometricService.isBiometricAvailable();
     final isEnabled = await _secureStorage.isBiometricEnabled();
     final biometricType = await _biometricService.getBiometricTypeDescription();
 
-    if (mounted) {
-      setState(() {
-        _biometricAvailable = isAvailable;
-        _biometricEnabled = isEnabled;
-        _biometricType = biometricType;
-      });
-    }
+    if (!mounted) return;
+    setState(() {
+      _biometricAvailable = isAvailable;
+      _biometricEnabled = isEnabled;
+      _biometricType = biometricType;
+    });
   }
 
   Future<void> _toggleBiometric(bool value) async {
-    if (value) {
-      // Ativar biometria
-      final authenticated = await _biometricService.authenticate(
-        reason: 'Autentique-se para ativar $_biometricType',
-      );
+    if (_isTogglingBiometric) return;
 
-      if (authenticated) {
-        // Pedir credenciais para salvar
-        final credentials = await _showCredentialsDialog();
-
-        if (credentials != null) {
-          await _secureStorage.saveCredentials(
-            email: credentials['email']!,
-            password: credentials['password']!,
-          );
-          await _secureStorage.setBiometricEnabled(true);
-
-          setState(() => _biometricEnabled = true);
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('$_biometricType ativado com sucesso!'),
-                backgroundColor: FlutterFlowTheme.of(context).success,
-              ),
-            );
-          }
-        }
-      }
-    } else {
-      // Desativar biometria
-      await _secureStorage.clearCredentials();
-      await _secureStorage.setBiometricEnabled(false);
-
-      setState(() => _biometricEnabled = false);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$_biometricType desativado'),
-            backgroundColor: FlutterFlowTheme.of(context).secondaryText,
-          ),
+    setState(() => _isTogglingBiometric = true);
+    try {
+      if (value) {
+        final authenticated = await _biometricService.authenticate(
+          reason: 'Autentique-se para ativar $_biometricType',
         );
+        if (!authenticated) return;
+
+        if (!mounted) return;
+        final credentials = await showBiometricCredentialsDialog(
+          context,
+          currentUserEmail,
+        );
+        if (credentials == null) return;
+
+        await _secureStorage.saveCredentials(
+          email: credentials.email,
+          password: credentials.password,
+        );
+        await _secureStorage.setBiometricEnabled(true);
+
+        if (!mounted) return;
+        setState(() => _biometricEnabled = true);
+        _showMessage(
+          message: '$_biometricType ativado com sucesso!',
+          background: FlutterFlowTheme.of(context).success,
+        );
+      } else {
+        await _secureStorage.clearCredentials();
+        await _secureStorage.setBiometricEnabled(false);
+
+        if (!mounted) return;
+        setState(() => _biometricEnabled = false);
+        _showMessage(
+          message: '$_biometricType desativado',
+          background: FlutterFlowTheme.of(context).secondaryText,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isTogglingBiometric = false);
       }
     }
   }
 
-  Future<Map<String, String>?> _showCredentialsDialog() async {
-    final emailController = TextEditingController(text: currentUserEmail);
-    final passwordController = TextEditingController();
-
-    return showDialog<Map<String, String>>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Confirme suas credenciais'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(labelText: 'E-mail'),
-              enabled: false,
-            ),
-            SizedBox(height: 16.0),
-            TextField(
-              controller: passwordController,
-              decoration: InputDecoration(labelText: 'Senha'),
-              obscureText: true,
-              autofocus: true,
-            ),
-          ],
+  void _showMessage({
+    required String message,
+    required Color background,
+  }) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.nunito(),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (passwordController.text.isNotEmpty) {
-                Navigator.pop(context, {
-                  'email': emailController.text,
-                  'password': passwordController.text,
-                });
-              }
-            },
-            child: Text(
-              'Confirmar',
-              style: TextStyle(
-                color: FlutterFlowTheme.of(context).primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
+        backgroundColor: background,
       ),
     );
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _model.dispose();
     super.dispose();
   }
 
-  Widget _buildMenuItem(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    bool? value,
-    Function(bool)? onChanged,
-  }) {
-    final bool isSwitch = value != null && onChanged != null;
-
-    return InkWell(
-      onTap: isSwitch ? null : onTap,
-      child: Container(
-        padding: EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          color: FlutterFlowTheme.of(context).secondaryBackground,
-          border: Border(
-            bottom: BorderSide(
-              color: FlutterFlowTheme.of(context).grayscale20,
-              width: 1.0,
-            ),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48.0,
-              height: 48.0,
-              decoration: BoxDecoration(
-                color:
-                    FlutterFlowTheme.of(context).primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              child: Icon(
-                icon,
-                color: FlutterFlowTheme.of(context).primary,
-                size: 24.0,
-              ),
-            ),
-            SizedBox(width: 16.0),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: FlutterFlowTheme.of(context).bodyLarge.override(
-                          font: GoogleFonts.nunito(
-                            fontWeight: FontWeight.w600,
-                          ),
-                          letterSpacing: 0.0,
-                        ),
-                  ),
-                  SizedBox(height: 4.0),
-                  Text(
-                    subtitle,
-                    style: FlutterFlowTheme.of(context).bodySmall.override(
-                          font: GoogleFonts.nunito(),
-                          color: FlutterFlowTheme.of(context).secondaryText,
-                          letterSpacing: 0.0,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-            if (isSwitch)
-              Switch.adaptive(
-                value: value,
-                onChanged: onChanged,
-                activeTrackColor: FlutterFlowTheme.of(context).primary,
-              )
-            else
-              Icon(
-                Icons.chevron_right_rounded,
-                color: FlutterFlowTheme.of(context).secondaryText,
-                size: 24.0,
-              ),
-          ],
+  Widget _buildSectionTitle(
+    BuildContext context,
+    String text,
+  ) {
+    final theme = FlutterFlowTheme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      child: Text(
+        text,
+        style: GoogleFonts.nunito(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: theme.primary,
+          letterSpacing: 1.0,
         ),
       ),
     );
@@ -272,230 +147,114 @@ class _SegurancaWidgetState extends State<SegurancaWidget>
 
   @override
   Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
+        backgroundColor: theme.grayscale20,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: theme.primary,
+          surfaceTintColor: Colors.transparent,
+          scrolledUnderElevation: 0,
+          toolbarHeight: 68,
+          titleSpacing: 0,
           automaticallyImplyLeading: false,
-          leading: FlutterFlowIconButton(
-            borderRadius: 30.0,
-            buttonSize: 60.0,
+          leading: IconButton(
             icon: Icon(
-              Icons.arrow_back_rounded,
-              color: FlutterFlowTheme.of(context).primaryText,
-              size: 30.0,
+              Icons.arrow_back_ios_new_rounded,
+              color: theme.tertiary,
+              size: 22,
             ),
-            onPressed: () async {
-              context.pop();
-            },
+            onPressed: () => context.safePop(),
           ),
           title: Text(
             'Segurança',
-            style: FlutterFlowTheme.of(context).headlineSmall.override(
-                  font: GoogleFonts.nunito(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  color: FlutterFlowTheme.of(context).primaryText,
-                  letterSpacing: 0.0,
-                ),
+            style: GoogleFonts.nunito(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: theme.tertiary,
+            ),
           ),
           centerTitle: true,
-          elevation: 0.0,
+          elevation: 0,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Divider(
+              height: 1,
+              color: theme.tertiary.withValues(alpha: 0.22),
+            ),
+          ),
         ),
         body: SafeArea(
-          top: true,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Cabeçalho informativo
-                Container(
-                  padding: EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 64.0,
-                            height: 64.0,
-                            decoration: BoxDecoration(
-                              color: FlutterFlowTheme.of(context)
-                                  .primary
-                                  .withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.security_rounded,
-                              size: 32.0,
-                              color: FlutterFlowTheme.of(context).primary,
-                            ),
-                          ),
-                          SizedBox(width: 16.0),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Proteja sua conta',
-                                  style: FlutterFlowTheme.of(context)
-                                      .titleLarge
-                                      .override(
-                                        font: GoogleFonts.nunito(
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                        letterSpacing: 0.0,
-                                      ),
-                                ),
-                                SizedBox(height: 4.0),
-                                Text(
-                                  'Gerencie a segurança da sua conta',
-                                  style: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .override(
-                                        font: GoogleFonts.nunito(),
-                                        color: FlutterFlowTheme.of(context)
-                                            .secondaryText,
-                                        letterSpacing: 0.0,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  theme.grayscale10,
+                  theme.grayscale20,
+                ],
+              ),
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: SecurityIntroCard(),
+                  ),
+                  _buildSectionTitle(context, 'AUTENTICAÇÃO'),
+                  if (_biometricAvailable)
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: HomeSurfaceTokens.cardDecoration(
+                        theme,
+                        radius: 20,
                       ),
-                    ],
-                  ),
-                ),
-
-                // Seção de Autenticação
-                Padding(
-                  padding:
-                      EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 16.0),
-                  child: Text(
-                    'AUTENTICAÇÃO',
-                    style: FlutterFlowTheme.of(context).labelSmall.override(
-                          font: GoogleFonts.nunito(
-                            fontWeight: FontWeight.w700,
-                          ),
-                          color: FlutterFlowTheme.of(context).secondaryText,
-                          letterSpacing: 1.0,
-                        ),
-                  ),
-                ),
-
-                // Login Biométrico
-                if (_biometricAvailable)
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.fingerprint_rounded,
-                    title: 'Login Biométrico',
-                    subtitle: 'Entre rapidamente usando $_biometricType',
-                    value: _biometricEnabled,
-                    onChanged: _toggleBiometric,
-                    onTap: () {},
-                  ),
-
-                // Seção de Credenciais
-                Padding(
-                  padding:
-                      EdgeInsetsDirectional.fromSTEB(24.0, 24.0, 24.0, 16.0),
-                  child: Text(
-                    'CREDENCIAIS',
-                    style: FlutterFlowTheme.of(context).labelSmall.override(
-                          font: GoogleFonts.nunito(
-                            fontWeight: FontWeight.w700,
-                          ),
-                          color: FlutterFlowTheme.of(context).secondaryText,
-                          letterSpacing: 1.0,
-                        ),
-                  ),
-                ),
-
-                // Alterar Senha
-                _buildMenuItem(
-                  context,
-                  icon: Icons.lock_outline_rounded,
-                  title: 'Alterar Senha',
-                  subtitle: 'Modificar sua senha de acesso',
-                  onTap: () {
-                    context.pushNamed('alterarSenha');
-                  },
-                ),
-
-                // Alterar Email
-                _buildMenuItem(
-                  context,
-                  icon: Icons.email_outlined,
-                  title: 'Alterar E-mail',
-                  subtitle: 'Modificar seu e-mail de acesso',
-                  onTap: () {
-                    context.pushNamed('alterarEmail');
-                  },
-                ),
-
-                // Informações adicionais
-                Padding(
-                  padding: EdgeInsets.all(24.0),
-                  child: Container(
-                    padding: EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: FlutterFlowTheme.of(context)
-                          .info
-                          .withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12.0),
-                      border: Border.all(
-                        color: FlutterFlowTheme.of(context).info,
-                        width: 1.0,
+                      child: SecurityOptionTile(
+                        icon: Icons.fingerprint_rounded,
+                        title: 'Login Biométrico',
+                        subtitle: 'Entre rapidamente usando $_biometricType',
+                        switchValue: _biometricEnabled,
+                        onSwitchChanged: _isTogglingBiometric ? null : _toggleBiometric,
                       ),
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  _buildSectionTitle(context, 'CREDENCIAIS'),
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: HomeSurfaceTokens.cardDecoration(
+                      theme,
+                      radius: 20,
+                    ),
+                    child: Column(
                       children: [
-                        Icon(
-                          Icons.info_outline_rounded,
-                          color: FlutterFlowTheme.of(context).info,
-                          size: 20.0,
+                        SecurityOptionTile(
+                          icon: Icons.lock_outline_rounded,
+                          title: 'Alterar Senha',
+                          subtitle: 'Modificar sua senha de acesso',
+                          showDivider: true,
+                          onTap: () => context.pushNamed('alterarSenha'),
                         ),
-                        SizedBox(width: 12.0),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Dica de Segurança',
-                                style: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .override(
-                                      font: GoogleFonts.nunito(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      letterSpacing: 0.0,
-                                    ),
-                              ),
-                              SizedBox(height: 4.0),
-                              Text(
-                                'Use uma senha forte com letras, números e caracteres especiais. Ative a autenticação biométrica para maior segurança.',
-                                style: FlutterFlowTheme.of(context)
-                                    .bodySmall
-                                    .override(
-                                      font: GoogleFonts.nunito(),
-                                      color: FlutterFlowTheme.of(context)
-                                          .primaryText,
-                                      letterSpacing: 0.0,
-                                    ),
-                              ),
-                            ],
-                          ),
+                        SecurityOptionTile(
+                          icon: Icons.email_outlined,
+                          title: 'Alterar E-mail',
+                          subtitle: 'Modificar seu e-mail de acesso',
+                          onTap: () => context.pushNamed('alterarEmail'),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 24, 16, 0),
+                    child: SecurityInfoCard(),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

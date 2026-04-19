@@ -1,10 +1,7 @@
-import '/backend/supabase/supabase.dart';
-import '/flutter_flow/flutter_flow_icon_button.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
+import '/shared/components/legal_document_page.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'termos_uso_model.dart';
+
 export 'termos_uso_model.dart';
 
 class TermosUsoWidget extends StatefulWidget {
@@ -20,14 +17,38 @@ class TermosUsoWidget extends StatefulWidget {
 class _TermosUsoWidgetState extends State<TermosUsoWidget> {
   late TermosUsoModel _model;
 
-  final scaffoldKey = GlobalKey<ScaffoldState>();
+  static const List<LegalDocumentSection> _sections = [
+    LegalDocumentSection(
+      title: '1. Objeto e aceitação',
+      body:
+          'Estes Termos regulam o uso do aplicativo da Carteira Contábil para contratação e acompanhamento de serviços de assessoria contábil, fiscal e trabalhista. Ao utilizar o app, o usuário declara ciência e concordância com estes Termos e com a legislação brasileira aplicável.',
+    ),
+    LegalDocumentSection(
+      title: '2. Serviços oferecidos',
+      body:
+          'O aplicativo permite acesso a informações da empresa, emissão e acompanhamento de documentos, comunicação com o escritório e outras funcionalidades de apoio à rotina contábil. A disponibilidade de cada funcionalidade pode variar conforme plano contratado e obrigações legais do cliente.',
+    ),
+    LegalDocumentSection(
+      title: '3. Responsabilidades do cliente',
+      body:
+          'O cliente deve fornecer dados verdadeiros, manter documentos atualizados e cumprir prazos para envio de informações contábeis e fiscais. O atraso ou omissão de dados pode impactar a entrega das obrigações acessórias e gerar multas por órgãos competentes (Receita Federal, Estados e Municípios).',
+    ),
+    LegalDocumentSection(
+      title: '4. Limites e conformidade legal',
+      body:
+          'A Carteira Contábil atua em conformidade com normas contábeis e tributárias vigentes no Brasil, incluindo regras do CFC e legislações fiscal e trabalhista. O app não substitui orientação jurídica individualizada, quando necessária para casos específicos.',
+    ),
+    LegalDocumentSection(
+      title: '5. Suspensão e encerramento',
+      body:
+          'O uso poderá ser suspenso em caso de fraude, uso indevido, violação de segurança ou descumprimento contratual. O encerramento da relação contratual seguirá as condições comerciais firmadas entre cliente e escritório.',
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _model = createModel(context, () => TermosUsoModel());
-
-    WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
+    _model = TermosUsoModel();
   }
 
   @override
@@ -36,161 +57,12 @@ class _TermosUsoWidgetState extends State<TermosUsoWidget> {
     super.dispose();
   }
 
-  Future<String?> _loadTermsOfUse() async {
-    try {
-      final tenantId = FFAppState().tenantId;
-      if (tenantId == null) return null;
-
-      final tenants = await TenantTable().queryRows(
-        queryFn: (q) => q.eq('id', tenantId),
-      );
-
-      return tenants.firstOrNull?.termsUse;
-    } catch (e) {
-      print('Erro ao carregar termos de uso: $e');
-      return null;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          automaticallyImplyLeading: false,
-          leading: FlutterFlowIconButton(
-            borderRadius: 30.0,
-            buttonSize: 60.0,
-            icon: Icon(
-              Icons.arrow_back_rounded,
-              color: FlutterFlowTheme.of(context).primaryText,
-              size: 30.0,
-            ),
-            onPressed: () async {
-              context.pop();
-            },
-          ),
-          title: Text(
-            'Termos de Uso',
-            style: FlutterFlowTheme.of(context).headlineSmall.override(
-                  font: GoogleFonts.nunito(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  color: FlutterFlowTheme.of(context).primaryText,
-                  letterSpacing: 0.0,
-                ),
-          ),
-          centerTitle: true,
-          elevation: 0.0,
-        ),
-        body: SafeArea(
-          child: FutureBuilder<String?>(
-            future: _loadTermsOfUse(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      FlutterFlowTheme.of(context).primary,
-                    ),
-                  ),
-                );
-              }
-
-              if (snapshot.hasError) {
-                return Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64.0,
-                          color: FlutterFlowTheme.of(context).error,
-                        ),
-                        SizedBox(height: 16.0),
-                        Text(
-                          'Erro ao carregar termos de uso',
-                          textAlign: TextAlign.center,
-                          style:
-                              FlutterFlowTheme.of(context).titleMedium.override(
-                                    font: GoogleFonts.nunito(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    color: FlutterFlowTheme.of(context).error,
-                                    letterSpacing: 0.0,
-                                  ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              final termsContent = snapshot.data;
-
-              if (termsContent == null || termsContent.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.description_outlined,
-                          size: 64.0,
-                          color: FlutterFlowTheme.of(context).grayscale60,
-                        ),
-                        SizedBox(height: 16.0),
-                        Text(
-                          'Termos de uso não disponíveis',
-                          textAlign: TextAlign.center,
-                          style: FlutterFlowTheme.of(context)
-                              .titleMedium
-                              .override(
-                                font: GoogleFonts.nunito(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                color:
-                                    FlutterFlowTheme.of(context).secondaryText,
-                                letterSpacing: 0.0,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              return SingleChildScrollView(
-                padding: EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      termsContent,
-                      style: FlutterFlowTheme.of(context).bodyMedium.override(
-                            font: GoogleFonts.nunito(),
-                            color: FlutterFlowTheme.of(context).primaryText,
-                            fontSize: 14.0,
-                            letterSpacing: 0.0,
-                          ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ),
+    return const LegalDocumentPage(
+      title: 'Termos de Uso',
+      lastUpdatedLabel: 'Atualizado em: 18/04/2026',
+      sections: _sections,
     );
   }
 }

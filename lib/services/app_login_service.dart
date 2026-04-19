@@ -1,9 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import '/backend/supabase/supabase.dart';
 import '/app_state.dart';
 import '/services/company_profile_service.dart';
+import '/services/company_user_profile_service.dart';
 
 /// Resultado da validação de login do app
 class AppLoginValidationResult {
@@ -33,15 +32,12 @@ class AppLoginService {
     String authUserId,
   ) async {
     try {
-      print('🔐 Validando login para auth_user_id: $authUserId');
-
       final response = await _supabase.rpc(
         'validate_login',
         params: {'p_auth_user_id': authUserId},
       );
 
       if (response == null) {
-        print('❌ validate_login retornou null');
         return const AppLoginValidationResult(
           success: false,
           errorMessage: 'Erro ao validar permissão de acesso.',
@@ -49,12 +45,10 @@ class AppLoginService {
       }
 
       final data = Map<String, dynamic>.from(response as Map);
-      print('📋 Resposta validate_login: $data');
 
       if (data['success'] != true) {
         final errorMsg = data['error'] as String? ??
             'Usuário sem permissão para acessar o aplicativo.';
-        print('❌ Validação falhou: $errorMsg');
         return AppLoginValidationResult(
           success: false,
           errorMessage: errorMsg,
@@ -79,7 +73,6 @@ class AppLoginService {
         companyName: companyName,
       );
     } catch (e) {
-      print('❌ Erro ao validar login do app: $e');
       return AppLoginValidationResult(
         success: false,
         errorMessage: 'Erro ao validar permissão. Tente novamente.',
@@ -117,62 +110,15 @@ class AppLoginService {
       result.companyName,
     );
 
+    await CompanyUserProfileService.refreshIntoAppState(
+      companyUserId: result.companyUserId!,
+    );
+
     await CompanyProfileService.refreshIntoAppState(
       companyId: result.companyId!,
       companyUserId: result.companyUserId!,
     );
 
     return true;
-  }
-
-  /// Lista empresas que o usuário pode acessar (para troca de empresa)
-  static Future<List<Map<String, String>>> getUserCompanies(String authUserId) async {
-    try {
-      print('📋 getUserCompanies chamado com authUserId: $authUserId');
-      final response = await _supabase.rpc(
-        'get_user_companies',
-        params: {'p_auth_user_id': authUserId},
-      );
-      print('📋 get_user_companies resposta: tipo=${response.runtimeType}');
-      if (response == null) {
-        print('📋 get_user_companies retornou null');
-        return [];
-      }
-
-      List<dynamic> list;
-      if (response is List) {
-        list = response;
-        print('📋 get_user_companies: lista com ${list.length} itens');
-      } else if (response is String) {
-        final decoded = jsonDecode(response);
-        list = decoded is List ? decoded : [];
-        print('📋 get_user_companies: parseado de String, ${list.length} itens');
-      } else if (response is Map && response.containsKey('company_id')) {
-        list = [response];
-        print('📋 get_user_companies: único objeto em Map');
-      } else if (response is Map) {
-        final data = response['data'];
-        list = data is List ? data : [];
-        print('📋 get_user_companies: Map com chave data, ${list.length} itens');
-      } else {
-        print('📋 get_user_companies: formato não tratado, response=$response');
-        return [];
-      }
-
-      final result = list.map((e) {
-        final m = e is Map ? Map<String, dynamic>.from(e) : <String, dynamic>{};
-        return {
-          'company_id': m['company_id']?.toString() ?? '',
-          'company_user_id': m['company_user_id']?.toString() ?? '',
-          'business_name': m['business_name']?.toString() ?? '',
-        };
-      }).toList();
-      print('📋 getUserCompanies retornando ${result.length} empresas');
-      return result;
-    } catch (e, st) {
-      print('❌ Erro ao listar empresas do usuário: $e');
-      print('❌ Stack: $st');
-      return [];
-    }
   }
 }

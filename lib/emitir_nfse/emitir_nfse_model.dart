@@ -3,20 +3,20 @@ import 'emitir_nfse_widget.dart' show EmitirNfseWidget;
 import 'package:flutter/material.dart';
 
 class EmitirNfseModel extends FlutterFlowModel<EmitirNfseWidget> {
-  // Form controllers
+  final formKey = GlobalKey<FormState>();
+
   final TextEditingController descricaoController = TextEditingController();
   final TextEditingController valorController = TextEditingController();
-  final TextEditingController clienteController = TextEditingController();
-  
-  // Form focus nodes
+  final TextEditingController customerSearchController =
+      TextEditingController();
+  final TextEditingController municipioSearchController =
+      TextEditingController();
+
   final FocusNode descricaoFocusNode = FocusNode();
   final FocusNode valorFocusNode = FocusNode();
-  final FocusNode clienteFocusNode = FocusNode();
-  
-  // Estado
-  bool isLoading = false;
-  String? selectedServiceType;
-  
+  final FocusNode customerSearchFocusNode = FocusNode();
+  final FocusNode municipioSearchFocusNode = FocusNode();
+
   @override
   void initState(BuildContext context) {}
 
@@ -24,10 +24,11 @@ class EmitirNfseModel extends FlutterFlowModel<EmitirNfseWidget> {
   void dispose() {
     descricaoController.dispose();
     valorController.dispose();
-    clienteController.dispose();
+    customerSearchController.dispose();
+    municipioSearchController.dispose();
     descricaoFocusNode.dispose();
     valorFocusNode.dispose();
-    clienteFocusNode.dispose();
+    customerSearchFocusNode.dispose();
+    municipioSearchFocusNode.dispose();
   }
 }
-

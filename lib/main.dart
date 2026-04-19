@@ -25,12 +25,6 @@ void main() async {
   GoRouter.optionURLReflectsImperativeAPIs = true;
   usePathUrlStrategy();
 
-  // White Label Configuration
-  print('🚀 Iniciando ${appConfig.appName}');
-  print('📦 Package ID: ${appConfig.appId}');
-  print('🏷️  Tenant Slug: ${appConfig.tenantSlug}');
-  print('🎨 Primary Color: ${appConfig.primaryColor}');
-
   // Inicializar Firebase
   await initFirebase();
 
@@ -233,15 +227,15 @@ class _NavBarPageState extends State<NavBarPage> {
               children: [
                 Icon(
                   Icons.add,
-                  color: Colors.white,
+                  color: FlutterFlowTheme.of(context).tertiary,
                   size: 26,
                 ),
                 Text(
                   'NFS-e',
                   style: GoogleFonts.nunito(
                     fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    color: FlutterFlowTheme.of(context).tertiary,
                   ),
                 ),
               ],
@@ -279,9 +273,7 @@ class _NavBarPageState extends State<NavBarPage> {
                           _currentPageName == 'home'
                               ? Icons.home
                               : Icons.home_outlined,
-                          color: _currentPageName == 'home'
-                              ? FlutterFlowTheme.of(context).primary
-                              : FlutterFlowTheme.of(context).grayscale80,
+                          color: FlutterFlowTheme.of(context).primary,
                           size: 24,
                         ),
                         const SizedBox(height: 2),
@@ -315,9 +307,7 @@ class _NavBarPageState extends State<NavBarPage> {
                           _currentPageName == 'nfseList'
                               ? Icons.receipt_long
                               : Icons.receipt_long_outlined,
-                          color: _currentPageName == 'nfseList'
-                              ? FlutterFlowTheme.of(context).primary
-                              : FlutterFlowTheme.of(context).grayscale80,
+                          color: FlutterFlowTheme.of(context).primary,
                           size: 24,
                         ),
                         const SizedBox(height: 2),
@@ -353,9 +343,7 @@ class _NavBarPageState extends State<NavBarPage> {
                           _currentPageName == 'guias'
                               ? Icons.description
                               : Icons.description_outlined,
-                          color: _currentPageName == 'guias'
-                              ? FlutterFlowTheme.of(context).primary
-                              : FlutterFlowTheme.of(context).grayscale80,
+                          color: FlutterFlowTheme.of(context).primary,
                           size: 24,
                         ),
                         const SizedBox(height: 2),
@@ -389,9 +377,7 @@ class _NavBarPageState extends State<NavBarPage> {
                           _currentPageName == 'servicos'
                               ? Icons.work_rounded
                               : Icons.work_outline_rounded,
-                          color: _currentPageName == 'servicos'
-                              ? FlutterFlowTheme.of(context).primary
-                              : FlutterFlowTheme.of(context).grayscale80,
+                          color: FlutterFlowTheme.of(context).primary,
                           size: 24,
                         ),
                         const SizedBox(height: 2),

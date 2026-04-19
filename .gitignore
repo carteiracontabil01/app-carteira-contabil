@@ -4,3 +4,7 @@ build/
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+
+# Runtime secrets passed with --dart-define-from-file
+env/*.local.json
+env/*.secret.json

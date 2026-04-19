@@ -137,33 +137,33 @@ class LightModeTheme extends FlutterFlowTheme {
   @Deprecated('Use tertiary instead')
   Color get tertiaryColor => tertiary;
 
-  late Color primary = const Color(0xFF15203D); // Azul escuro padrão
-  late Color secondary = const Color(0xFF15203D); // Azul escuro padrão
-  late Color tertiary = const Color(0xFFD5D91B); // Amarelo padrão
-  late Color alternate = const Color(0xFFFF5963);
-  late Color primaryText = const Color(0xFF14181B);
-  late Color secondaryText = const Color(0xFF57636C);
+  late Color primary = const Color(0xFF34477F); // Azul Acolhimento
+  late Color secondary = const Color(0xFF262857); // Azul Confianca
+  late Color tertiary = const Color(0xFFD6DA1C); // Verde-Valorizacao
+  late Color alternate = const Color(0xFF4E66B3); // apoio para realces
+  late Color primaryText = const Color(0xFF111827); // quase preto
+  late Color secondaryText = const Color(0xFF5B6472); // cinza para apoio
   late Color primaryBackground = const Color(0xFFFFFFFF);
-  late Color secondaryBackground = const Color(0xFFFFFFFF);
-  late Color accent1 = const Color(0xFF000000);
+  late Color secondaryBackground = const Color(0xFFFBFCFE);
+  late Color accent1 = const Color(0xFF0B0F17); // preto de UI
   late Color accent2 = const Color(0xFFFFFFFF);
-  late Color accent3 = const Color(0xFFFFF9EB);
-  late Color accent4 = const Color(0xFFF9F9F9);
-  late Color success = const Color(0xFF3D843C);
-  late Color warning = const Color(0xFFFACC15);
-  late Color error = const Color(0xFFE53935);
-  late Color info = const Color(0xFF1C4494);
+  late Color accent3 = const Color(0xFFF6F8FF);
+  late Color accent4 = const Color(0xFFF2F4F8);
+  late Color success = const Color(0xFF1F9D6A);
+  late Color warning = const Color(0xFFD6DA1C);
+  late Color error = const Color(0xFFDC2626);
+  late Color info = const Color(0xFF34477F);
 
-  late Color grayscale10 = const Color(0xFFFDFDFD);
-  late Color grayscale20 = const Color(0xFFECF1F6);
-  late Color grayscale30 = const Color(0xFFE3E9ED);
-  late Color grayscale40 = const Color(0xFFD1D8DD);
-  late Color grayscale50 = const Color(0xFFBFC6CC);
-  late Color grayscale60 = const Color(0xFF9CA4AB);
-  late Color grayscale70 = const Color(0xFF78828A);
-  late Color grayscale80 = const Color(0xFF66707A);
-  late Color grayscale90 = const Color(0xFF434E58);
-  late Color grayscale100 = const Color(0xFF171725);
+  late Color grayscale10 = const Color(0xFFFFFFFF);
+  late Color grayscale20 = const Color(0xFFF7F9FC);
+  late Color grayscale30 = const Color(0xFFE9EEF5);
+  late Color grayscale40 = const Color(0xFFD9E1EB);
+  late Color grayscale50 = const Color(0xFFC4CEDB);
+  late Color grayscale60 = const Color(0xFFA6B2C1);
+  late Color grayscale70 = const Color(0xFF8190A3);
+  late Color grayscale80 = const Color(0xFF5F6D80);
+  late Color grayscale90 = const Color(0xFF394556);
+  late Color grayscale100 = const Color(0xFF111827);
   late Color webNav = const Color(0xFFF9F9F9);
   late Color textNavBar = const Color(0xF9FFFFFF);
   late Color hoverNavBar = const Color(0xFFECECEC);
@@ -227,112 +227,112 @@ class ThemeTypography extends Typography {
 
   final FlutterFlowTheme theme;
 
-  String get displayLargeFamily => 'Nunito';
+  String get displayLargeFamily => 'Manrope';
   bool get displayLargeIsCustom => false;
-  TextStyle get displayLarge => GoogleFonts.nunito(
+  TextStyle get displayLarge => GoogleFonts.manrope(
         color: theme.grayscale100,
-        fontWeight: FontWeight.normal,
-        fontSize: 57.0,
+        fontWeight: FontWeight.w300,
+        fontSize: 58.0,
       );
-  String get displayMediumFamily => 'Nunito';
+  String get displayMediumFamily => 'Manrope';
   bool get displayMediumIsCustom => false;
-  TextStyle get displayMedium => GoogleFonts.nunito(
+  TextStyle get displayMedium => GoogleFonts.manrope(
         color: theme.grayscale100,
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w700,
         fontSize: 48.0,
       );
-  String get displaySmallFamily => 'Nunito';
+  String get displaySmallFamily => 'Manrope';
   bool get displaySmallIsCustom => false;
-  TextStyle get displaySmall => GoogleFonts.nunito(
+  TextStyle get displaySmall => GoogleFonts.manrope(
         color: theme.grayscale100,
-        fontWeight: FontWeight.w500,
-        fontSize: 24.0,
+        fontWeight: FontWeight.w700,
+        fontSize: 36.0,
         fontStyle: FontStyle.normal,
       );
-  String get headlineLargeFamily => 'Nunito';
+  String get headlineLargeFamily => 'Manrope';
   bool get headlineLargeIsCustom => false;
-  TextStyle get headlineLarge => GoogleFonts.nunito(
-        color: theme.grayscale100,
-        fontWeight: FontWeight.bold,
-        fontSize: 40.0,
-      );
-  String get headlineMediumFamily => 'Nunito';
-  bool get headlineMediumIsCustom => false;
-  TextStyle get headlineMedium => GoogleFonts.nunito(
-        color: theme.grayscale100,
-        fontWeight: FontWeight.bold,
-        fontSize: 24.0,
-        fontStyle: FontStyle.normal,
-      );
-  String get headlineSmallFamily => 'Nunito';
-  bool get headlineSmallIsCustom => false;
-  TextStyle get headlineSmall => GoogleFonts.nunito(
-        color: theme.grayscale100,
-        fontWeight: FontWeight.bold,
-        fontSize: 18.0,
-      );
-  String get titleLargeFamily => 'Nunito';
-  bool get titleLargeIsCustom => false;
-  TextStyle get titleLarge => GoogleFonts.nunito(
-        color: theme.primaryText,
-        fontWeight: FontWeight.bold,
-        fontSize: 28.0,
-      );
-  String get titleMediumFamily => 'Nunito';
-  bool get titleMediumIsCustom => false;
-  TextStyle get titleMedium => GoogleFonts.nunito(
-        color: theme.primaryText,
-        fontWeight: FontWeight.w500,
-        fontSize: 18.0,
-      );
-  String get titleSmallFamily => 'Nunito';
-  bool get titleSmallIsCustom => false;
-  TextStyle get titleSmall => GoogleFonts.nunito(
-        color: theme.secondaryText,
-        fontWeight: FontWeight.w500,
-        fontSize: 16.0,
-      );
-  String get labelLargeFamily => 'Nunito';
-  bool get labelLargeIsCustom => false;
-  TextStyle get labelLarge => GoogleFonts.nunito(
-        color: theme.accent2,
-        fontWeight: FontWeight.normal,
-        fontSize: 16.0,
-      );
-  String get labelMediumFamily => 'Nunito';
-  bool get labelMediumIsCustom => false;
-  TextStyle get labelMedium => GoogleFonts.nunito(
-        color: theme.accent2,
-        fontWeight: FontWeight.w500,
-        fontSize: 14.0,
-      );
-  String get labelSmallFamily => 'Nunito';
-  bool get labelSmallIsCustom => false;
-  TextStyle get labelSmall => GoogleFonts.nunito(
-        color: theme.accent2,
-        fontWeight: FontWeight.w500,
-        fontSize: 12.0,
-      );
-  String get bodyLargeFamily => 'Nunito';
-  bool get bodyLargeIsCustom => false;
-  TextStyle get bodyLarge => GoogleFonts.nunito(
-        color: theme.primaryText,
-        fontWeight: FontWeight.normal,
-        fontSize: 16.0,
-      );
-  String get bodyMediumFamily => 'Nunito';
-  bool get bodyMediumIsCustom => false;
-  TextStyle get bodyMedium => GoogleFonts.nunito(
+  TextStyle get headlineLarge => GoogleFonts.manrope(
         color: theme.grayscale100,
         fontWeight: FontWeight.w800,
+        fontSize: 42.0,
+      );
+  String get headlineMediumFamily => 'Manrope';
+  bool get headlineMediumIsCustom => false;
+  TextStyle get headlineMedium => GoogleFonts.manrope(
+        color: theme.grayscale100,
+        fontWeight: FontWeight.w700,
+        fontSize: 30.0,
+        fontStyle: FontStyle.normal,
+      );
+  String get headlineSmallFamily => 'Manrope';
+  bool get headlineSmallIsCustom => false;
+  TextStyle get headlineSmall => GoogleFonts.manrope(
+        color: theme.grayscale100,
+        fontWeight: FontWeight.w700,
+        fontSize: 24.0,
+      );
+  String get titleLargeFamily => 'Manrope';
+  bool get titleLargeIsCustom => false;
+  TextStyle get titleLarge => GoogleFonts.manrope(
+        color: theme.primaryText,
+        fontWeight: FontWeight.w700,
+        fontSize: 22.0,
+      );
+  String get titleMediumFamily => 'Manrope';
+  bool get titleMediumIsCustom => false;
+  TextStyle get titleMedium => GoogleFonts.manrope(
+        color: theme.primaryText,
+        fontWeight: FontWeight.w600,
+        fontSize: 18.0,
+      );
+  String get titleSmallFamily => 'Manrope';
+  bool get titleSmallIsCustom => false;
+  TextStyle get titleSmall => GoogleFonts.manrope(
+        color: theme.secondaryText,
+        fontWeight: FontWeight.w600,
         fontSize: 16.0,
       );
-  String get bodySmallFamily => 'Nunito';
-  bool get bodySmallIsCustom => false;
-  TextStyle get bodySmall => GoogleFonts.nunito(
-        color: theme.secondaryText,
+  String get labelLargeFamily => 'Manrope';
+  bool get labelLargeIsCustom => false;
+  TextStyle get labelLarge => GoogleFonts.manrope(
+        color: theme.accent2,
+        fontWeight: FontWeight.w600,
+        fontSize: 16.0,
+      );
+  String get labelMediumFamily => 'Manrope';
+  bool get labelMediumIsCustom => false;
+  TextStyle get labelMedium => GoogleFonts.manrope(
+        color: theme.accent2,
+        fontWeight: FontWeight.w600,
+        fontSize: 14.0,
+      );
+  String get labelSmallFamily => 'Manrope';
+  bool get labelSmallIsCustom => false;
+  TextStyle get labelSmall => GoogleFonts.manrope(
+        color: theme.accent2,
+        fontWeight: FontWeight.w600,
+        fontSize: 12.0,
+      );
+  String get bodyLargeFamily => 'Manrope';
+  bool get bodyLargeIsCustom => false;
+  TextStyle get bodyLarge => GoogleFonts.manrope(
+        color: theme.primaryText,
+        fontWeight: FontWeight.normal,
+        fontSize: 16.0,
+      );
+  String get bodyMediumFamily => 'Manrope';
+  bool get bodyMediumIsCustom => false;
+  TextStyle get bodyMedium => GoogleFonts.manrope(
+        color: theme.grayscale100,
         fontWeight: FontWeight.w500,
         fontSize: 14.0,
+      );
+  String get bodySmallFamily => 'Manrope';
+  bool get bodySmallIsCustom => false;
+  TextStyle get bodySmall => GoogleFonts.manrope(
+        color: theme.secondaryText,
+        fontWeight: FontWeight.w500,
+        fontSize: 12.0,
       );
 }
 

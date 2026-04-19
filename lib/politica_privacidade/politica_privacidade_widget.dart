@@ -1,10 +1,7 @@
-import '/backend/supabase/supabase.dart';
-import '/flutter_flow/flutter_flow_icon_button.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
+import '/shared/components/legal_document_page.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'politica_privacidade_model.dart';
+
 export 'politica_privacidade_model.dart';
 
 class PoliticaPrivacidadeWidget extends StatefulWidget {
@@ -21,14 +18,38 @@ class PoliticaPrivacidadeWidget extends StatefulWidget {
 class _PoliticaPrivacidadeWidgetState extends State<PoliticaPrivacidadeWidget> {
   late PoliticaPrivacidadeModel _model;
 
-  final scaffoldKey = GlobalKey<ScaffoldState>();
+  static const List<LegalDocumentSection> _sections = [
+    LegalDocumentSection(
+      title: '1. Dados coletados',
+      body:
+          'Coletamos dados cadastrais, informações da empresa, dados de contato e documentos necessários à prestação de serviços contábeis, fiscais e trabalhistas. A coleta ocorre para cumprimento de obrigações legais, execução contratual e melhoria da experiência no aplicativo.',
+    ),
+    LegalDocumentSection(
+      title: '2. Finalidade do tratamento',
+      body:
+          'Os dados são tratados para execução dos serviços de assessoria contábil, envio de alertas de prazos, geração de documentos e atendimento ao cliente. Também podemos utilizar dados para comunicações operacionais e segurança da conta.',
+    ),
+    LegalDocumentSection(
+      title: '3. Compartilhamento de informações',
+      body:
+          'Poderá haver compartilhamento com órgãos públicos, plataformas governamentais e fornecedores essenciais à operação contábil, sempre nos limites da legislação aplicável e da LGPD (Lei nº 13.709/2018). Não comercializamos dados pessoais.',
+    ),
+    LegalDocumentSection(
+      title: '4. Segurança e retenção',
+      body:
+          'Adotamos controles técnicos e administrativos para proteger dados contra acesso não autorizado, perda ou alteração indevida. Os dados são mantidos pelo prazo necessário ao cumprimento de obrigações legais, regulatórias e contratuais.',
+    ),
+    LegalDocumentSection(
+      title: '5. Direitos do titular',
+      body:
+          'Nos termos da LGPD, o titular pode solicitar confirmação de tratamento, acesso, correção e outras medidas cabíveis. Solicitações podem ser feitas pelos canais oficiais de atendimento do escritório.',
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _model = createModel(context, () => PoliticaPrivacidadeModel());
-
-    WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
+    _model = PoliticaPrivacidadeModel();
   }
 
   @override
@@ -37,161 +58,12 @@ class _PoliticaPrivacidadeWidgetState extends State<PoliticaPrivacidadeWidget> {
     super.dispose();
   }
 
-  Future<String?> _loadPrivacyPolicy() async {
-    try {
-      final tenantId = FFAppState().tenantId;
-      if (tenantId == null) return null;
-
-      final tenants = await TenantTable().queryRows(
-        queryFn: (q) => q.eq('id', tenantId),
-      );
-
-      return tenants.firstOrNull?.privacyPolicy;
-    } catch (e) {
-      print('Erro ao carregar política de privacidade: $e');
-      return null;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          automaticallyImplyLeading: false,
-          leading: FlutterFlowIconButton(
-            borderRadius: 30.0,
-            buttonSize: 60.0,
-            icon: Icon(
-              Icons.arrow_back_rounded,
-              color: FlutterFlowTheme.of(context).primaryText,
-              size: 30.0,
-            ),
-            onPressed: () async {
-              context.pop();
-            },
-          ),
-          title: Text(
-            'Política de Privacidade',
-            style: FlutterFlowTheme.of(context).headlineSmall.override(
-                  font: GoogleFonts.nunito(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  color: FlutterFlowTheme.of(context).primaryText,
-                  letterSpacing: 0.0,
-                ),
-          ),
-          centerTitle: true,
-          elevation: 0.0,
-        ),
-        body: SafeArea(
-          child: FutureBuilder<String?>(
-            future: _loadPrivacyPolicy(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      FlutterFlowTheme.of(context).primary,
-                    ),
-                  ),
-                );
-              }
-
-              if (snapshot.hasError) {
-                return Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64.0,
-                          color: FlutterFlowTheme.of(context).error,
-                        ),
-                        SizedBox(height: 16.0),
-                        Text(
-                          'Erro ao carregar política de privacidade',
-                          textAlign: TextAlign.center,
-                          style:
-                              FlutterFlowTheme.of(context).titleMedium.override(
-                                    font: GoogleFonts.nunito(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    color: FlutterFlowTheme.of(context).error,
-                                    letterSpacing: 0.0,
-                                  ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              final policyContent = snapshot.data;
-
-              if (policyContent == null || policyContent.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.privacy_tip_outlined,
-                          size: 64.0,
-                          color: FlutterFlowTheme.of(context).grayscale60,
-                        ),
-                        SizedBox(height: 16.0),
-                        Text(
-                          'Política de privacidade não disponível',
-                          textAlign: TextAlign.center,
-                          style: FlutterFlowTheme.of(context)
-                              .titleMedium
-                              .override(
-                                font: GoogleFonts.nunito(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                color:
-                                    FlutterFlowTheme.of(context).secondaryText,
-                                letterSpacing: 0.0,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              return SingleChildScrollView(
-                padding: EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      policyContent,
-                      style: FlutterFlowTheme.of(context).bodyMedium.override(
-                            font: GoogleFonts.nunito(),
-                            color: FlutterFlowTheme.of(context).primaryText,
-                            fontSize: 14.0,
-                            letterSpacing: 0.0,
-                          ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ),
+    return const LegalDocumentPage(
+      title: 'Política de Privacidade',
+      lastUpdatedLabel: 'Atualizado em: 18/04/2026',
+      sections: _sections,
     );
   }
 }

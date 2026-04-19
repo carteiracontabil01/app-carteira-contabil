@@ -88,19 +88,6 @@ double somaAppStateCart(List<double> valor) {
   return sum;
 }
 
-int returnIndexAppState(
-  List<ProdutoStruct> appstate,
-  int idproduto,
-) {
-  // find the index of a product by its ID in appstate
-  for (int i = 0; i < appstate.length; i++) {
-    if (appstate[i].id == idproduto) {
-      return i;
-    }
-  }
-  return -1;
-}
-
 DateTime convertCurrentTimeFor23h59(DateTime horavintetres) {
   // convert 2024-02-06 18:36:17.941 to 2024-02-06 23:59:59.999
   return DateTime(horavintetres.year, horavintetres.month, horavintetres.day,

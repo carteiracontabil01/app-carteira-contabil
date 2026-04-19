@@ -1,12 +1,12 @@
-import '/app_state.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/services/nfse_list_service.dart';
-import 'nfse_billing_helpers.dart';
 import 'nfse_detail_widget.dart';
+import 'widgets/nfse_list_empty_state.dart';
+import 'widgets/nfse_list_filter_panel.dart';
+import 'widgets/nfse_list_item_card.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'nfse_list_model.dart';
 export 'nfse_list_model.dart';
@@ -41,7 +41,8 @@ class _NfseListWidgetState extends State<NfseListWidget> {
     _model = createModel(context, () => NfseListModel());
     if (widget.initialYear != null && widget.initialMonth != null) {
       _model.selectedYear = widget.initialYear!;
-      _model.selectedMonth = DateTime(widget.initialYear!, widget.initialMonth!, 1);
+      _model.selectedMonth =
+          DateTime(widget.initialYear!, widget.initialMonth!, 1);
       _model.setFilterType('month');
     }
     _scrollController.addListener(_onBillingScroll);
@@ -84,12 +85,16 @@ class _NfseListWidgetState extends State<NfseListWidget> {
 
     DateTime start;
     DateTime end;
-    if (_model.filterType == 'range' && _model.rangeStart != null && _model.rangeEnd != null) {
+    if (_model.filterType == 'range' &&
+        _model.rangeStart != null &&
+        _model.rangeEnd != null) {
       start = _model.rangeStart!;
       end = _model.rangeEnd!;
     } else if (_model.filterType == 'month') {
-      start = DateTime(_model.selectedMonth.year, _model.selectedMonth.month, 1);
-      end = DateTime(_model.selectedMonth.year, _model.selectedMonth.month + 1, 0);
+      start =
+          DateTime(_model.selectedMonth.year, _model.selectedMonth.month, 1);
+      end = DateTime(
+          _model.selectedMonth.year, _model.selectedMonth.month + 1, 0);
     } else {
       start = DateTime(_model.selectedYear, 1, 1);
       end = DateTime(_model.selectedYear, 12, 31);
@@ -138,23 +143,28 @@ class _NfseListWidgetState extends State<NfseListWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+    final currencyFormat =
+        NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
     final dateFormat = DateFormat('dd/MM/yyyy');
-    
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+        backgroundColor: FlutterFlowTheme.of(context).grayscale20,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: FlutterFlowTheme.of(context).primary,
           automaticallyImplyLeading: false,
+          toolbarHeight: 68,
+          titleSpacing: 16,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
           title: Text(
             'Minhas NFS-e',
             style: GoogleFonts.nunito(
               fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: FlutterFlowTheme.of(context).primaryText,
+              fontWeight: FontWeight.w800,
+              color: FlutterFlowTheme.of(context).tertiary,
             ),
           ),
           actions: [
@@ -164,14 +174,14 @@ class _NfseListWidgetState extends State<NfseListWidget> {
               icon: Icon(
                 Icons.chat_bubble_outline_rounded,
                 size: 24,
-                color: FlutterFlowTheme.of(context).primaryText,
+                color: FlutterFlowTheme.of(context).tertiary,
               ),
             ),
             IconButton(
               icon: Icon(
                 Icons.tune_rounded,
                 size: 24,
-                color: FlutterFlowTheme.of(context).primaryText,
+                color: FlutterFlowTheme.of(context).tertiary,
               ),
               onPressed: () => _showFiltersBottomSheet(context),
             ),
@@ -179,202 +189,96 @@ class _NfseListWidgetState extends State<NfseListWidget> {
               icon: Icon(
                 Icons.search_rounded,
                 size: 24,
-                color: FlutterFlowTheme.of(context).primaryText,
+                color: FlutterFlowTheme.of(context).tertiary,
               ),
               onPressed: () {},
             ),
           ],
           elevation: 0.0,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Divider(
+              height: 1,
+              color:
+                  FlutterFlowTheme.of(context).tertiary.withValues(alpha: 0.22),
+            ),
+          ),
         ),
         body: SafeArea(
-          child: Column(
-            children: [
-              // Filtros
-              _buildFilters(context),
-              
-              // Lista de NFS-e
-              Expanded(
-                child: _buildNfseList(context, currencyFormat, dateFormat),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  FlutterFlowTheme.of(context).grayscale10,
+                  FlutterFlowTheme.of(context).grayscale20,
+                ],
               ),
-            ],
+            ),
+            child: Column(
+              children: [
+                _buildFilters(context),
+                Expanded(
+                  child: _buildNfseList(context, currencyFormat, dateFormat),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-  
+
   Widget _buildFilters(BuildContext context) {
-    final theme = FlutterFlowTheme.of(context);
-
-    return Container(
-      width: double.infinity,
-      color: theme.secondaryBackground,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Abas estilo Itaú: Mensal | Anual | Intervalo
-          Row(
-            children: [
-              Expanded(
-                child: _buildBankTab(
-                  context,
-                  'Mensal',
-                  _model.filterType == 'month',
-                  () {
-                    setState(() => _model.setFilterType('month'));
-                    _loadNfseList();
-                  },
-                ),
-              ),
-              Expanded(
-                child: _buildBankTab(
-                  context,
-                  'Anual',
-                  _model.filterType == 'year',
-                  () {
-                    setState(() => _model.setFilterType('year'));
-                    _loadNfseList();
-                  },
-                ),
-              ),
-              Expanded(
-                child: _buildBankTab(
-                  context,
-                  'Intervalo',
-                  _model.filterType == 'range',
-                  () => _showFiltersBottomSheet(context),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Linha do período: < Março 2025 > ou "dd/MM/yyyy - dd/MM/yyyy" quando intervalo
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (_model.filterType != 'range') ...[
-                InkWell(
-                  onTap: () {
-                    setState(() {
-                      if (_model.filterType == 'month') {
-                        _model.updateMonth(DateTime(
-                          _model.selectedMonth.year,
-                          _model.selectedMonth.month - 1,
-                        ));
-                      } else {
-                        _model.updateYear(_model.selectedYear - 1);
-                      }
-                    });
-                    _loadNfseList();
-                  },
-                  borderRadius: BorderRadius.circular(20),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
-                      Icons.chevron_left,
-                      size: 24,
-                      color: theme.primaryText.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-              ],
-              Expanded(
-                child: Text(
-                  _model.filterType == 'range' &&
-                          _model.rangeStart != null &&
-                          _model.rangeEnd != null
-                      ? '${DateFormat('dd/MM/yyyy').format(_model.rangeStart!)} - ${DateFormat('dd/MM/yyyy').format(_model.rangeEnd!)}'
-                      : _model.filterType == 'month'
-                          ? DateFormat('MMMM yyyy', 'pt_BR')
-                              .format(_model.selectedMonth)
-                          : '${_model.selectedYear}',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.nunito(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: theme.primaryText,
-                  ),
-                ),
-              ),
-              if (_model.filterType != 'range') ...[
-                const SizedBox(width: 12),
-                InkWell(
-                  onTap: () {
-                    setState(() {
-                      if (_model.filterType == 'month') {
-                        _model.updateMonth(DateTime(
-                          _model.selectedMonth.year,
-                          _model.selectedMonth.month + 1,
-                        ));
-                      } else {
-                        _model.updateYear(_model.selectedYear + 1);
-                      }
-                    });
-                    _loadNfseList();
-                  },
-                  borderRadius: BorderRadius.circular(20),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
-                      Icons.chevron_right,
-                      size: 24,
-                      color: theme.primaryText.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 12),
-          Divider(height: 1, color: theme.primaryText.withValues(alpha: 0.08)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBankTab(
-    BuildContext context,
-    String label,
-    bool isSelected,
-    VoidCallback onTap,
-  ) {
-    final theme = FlutterFlowTheme.of(context);
-
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: Text(
-              label,
-              style: GoogleFonts.nunito(
-                fontSize: 15,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? theme.primaryText
-                    : theme.primaryText.withValues(alpha: 0.6),
-              ),
-            ),
-          ),
-          Container(
-            height: 2,
-            decoration: BoxDecoration(
-              color: isSelected ? theme.primary : Colors.transparent,
-              borderRadius: BorderRadius.circular(1),
-            ),
-          ),
-        ],
-      ),
+    return NfseListFilterPanel(
+      filterType: _model.filterType,
+      selectedMonth: _model.selectedMonth,
+      selectedYear: _model.selectedYear,
+      rangeStart: _model.rangeStart,
+      rangeEnd: _model.rangeEnd,
+      onSelectMonth: () {
+        setState(() => _model.setFilterType('month'));
+        _loadNfseList();
+      },
+      onSelectYear: () {
+        setState(() => _model.setFilterType('year'));
+        _loadNfseList();
+      },
+      onSelectRange: () => _showFiltersBottomSheet(context),
+      onPreviousPeriod: () {
+        setState(() {
+          if (_model.filterType == 'month') {
+            _model.updateMonth(DateTime(
+              _model.selectedMonth.year,
+              _model.selectedMonth.month - 1,
+            ));
+          } else {
+            _model.updateYear(_model.selectedYear - 1);
+          }
+        });
+        _loadNfseList();
+      },
+      onNextPeriod: () {
+        setState(() {
+          if (_model.filterType == 'month') {
+            _model.updateMonth(DateTime(
+              _model.selectedMonth.year,
+              _model.selectedMonth.month + 1,
+            ));
+          } else {
+            _model.updateYear(_model.selectedYear + 1);
+          }
+        });
+        _loadNfseList();
+      },
     );
   }
 
   void _showFiltersBottomSheet(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    DateTime filterStart = _model.rangeStart ?? DateTime(_model.selectedMonth.year, _model.selectedMonth.month, 1);
+    DateTime filterStart = _model.rangeStart ??
+        DateTime(_model.selectedMonth.year, _model.selectedMonth.month, 1);
     DateTime filterEnd = _model.rangeEnd ?? DateTime.now();
 
     showModalBottomSheet<void>(
@@ -386,9 +290,11 @@ class _NfseListWidgetState extends State<NfseListWidget> {
           return Container(
             decoration: BoxDecoration(
               color: theme.primaryBackground,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
             ),
-            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewPadding.bottom),
+            padding:
+                EdgeInsets.only(bottom: MediaQuery.of(ctx).viewPadding.bottom),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -419,7 +325,8 @@ class _NfseListWidgetState extends State<NfseListWidget> {
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.close, size: 24, color: theme.primaryText),
+                          icon: Icon(Icons.close,
+                              size: 24, color: theme.primaryText),
                           onPressed: () => Navigator.of(ctx).pop(),
                         ),
                       ],
@@ -461,10 +368,13 @@ class _NfseListWidgetState extends State<NfseListWidget> {
                         firstDate: DateTime(2020),
                         lastDate: DateTime.now(),
                       );
-                      if (picked != null) setSheetState(() => filterStart = picked);
+                      if (picked != null)
+                        setSheetState(() => filterStart = picked);
                     },
                   ),
-                  Divider(height: 1, color: theme.primaryText.withValues(alpha: 0.08)),
+                  Divider(
+                      height: 1,
+                      color: theme.primaryText.withValues(alpha: 0.08)),
                   _buildFilterDateRow(
                     ctx,
                     theme,
@@ -477,7 +387,8 @@ class _NfseListWidgetState extends State<NfseListWidget> {
                         firstDate: DateTime(2020),
                         lastDate: DateTime.now(),
                       );
-                      if (picked != null) setSheetState(() => filterEnd = picked);
+                      if (picked != null)
+                        setSheetState(() => filterEnd = picked);
                     },
                   ),
                   const SizedBox(height: 24),
@@ -495,7 +406,9 @@ class _NfseListWidgetState extends State<NfseListWidget> {
                             },
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: BorderSide(color: theme.secondaryText.withValues(alpha: 0.4)),
+                              side: BorderSide(
+                                  color: theme.secondaryText
+                                      .withValues(alpha: 0.4)),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -536,7 +449,7 @@ class _NfseListWidgetState extends State<NfseListWidget> {
                               style: GoogleFonts.nunito(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                                color: theme.tertiary,
                               ),
                             ),
                           ),
@@ -604,7 +517,8 @@ class _NfseListWidgetState extends State<NfseListWidget> {
     );
   }
 
-  Widget _buildNfseList(BuildContext context, NumberFormat currencyFormat, DateFormat dateFormat) {
+  Widget _buildNfseList(BuildContext context, NumberFormat currencyFormat,
+      DateFormat dateFormat) {
     final nfseList = _model.getFilteredNfseList();
 
     if (_model.isLoading && nfseList.isEmpty) {
@@ -612,37 +526,9 @@ class _NfseListWidgetState extends State<NfseListWidget> {
     }
 
     if (nfseList.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.receipt_outlined,
-              size: 80,
-              color: FlutterFlowTheme.of(context).secondaryText.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Nenhuma NFS-e encontrada',
-              style: GoogleFonts.nunito(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: FlutterFlowTheme.of(context).secondaryText,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Nenhuma nota fiscal emitida no período selecionado',
-              style: GoogleFonts.nunito(
-                fontSize: 14,
-                color: FlutterFlowTheme.of(context).secondaryText,
-              ),
-            ),
-          ],
-        ),
-      );
+      return const NfseListEmptyState();
     }
-    
+
     final extraFooter = _model.billingLoadingMore ? 1 : 0;
     return ListView.builder(
       controller: _scrollController,
@@ -664,121 +550,19 @@ class _NfseListWidgetState extends State<NfseListWidget> {
         final nfse = nfseList[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: _buildNfseCard(context, nfse, currencyFormat, dateFormat),
+          child: NfseListItemCard(
+            nfse: nfse,
+            currencyFormat: currencyFormat,
+            dateFormat: dateFormat,
+            onTap: () {
+              context.pushNamed(
+                NfseDetailWidget.routeName,
+                extra: Map<String, dynamic>.from(nfse),
+              );
+            },
+          ),
         );
       },
     );
   }
-
-  Widget _buildNfseCard(
-    BuildContext context,
-    Map<String, dynamic> nfse,
-    NumberFormat currencyFormat,
-    DateFormat dateFormat,
-  ) {
-    final theme = FlutterFlowTheme.of(context);
-    final cliente = nfseBillingCliente(nfse);
-    final numero = nfseBillingNumeroDisplay(nfse);
-    final data = nfseBillingDate(nfse['emission_date']) ??
-        nfseBillingDate(nfse['data']) ??
-        DateTime.now();
-    final valorNum = nfseBillingValor(nfse);
-
-    final subtitle = StringBuffer(dateFormat.format(data));
-    if (numero.isNotEmpty && numero != '—') {
-      subtitle.write(' · ');
-      subtitle.write(numero);
-    }
-
-    return Material(
-      color: Colors.transparent,
-      elevation: 0,
-      child: InkWell(
-        onTap: () {
-          context.pushNamed(
-            NfseDetailWidget.routeName,
-            extra: Map<String, dynamic>.from(nfse),
-          );
-        },
-        borderRadius: BorderRadius.circular(14),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: theme.secondaryBackground,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: theme.primaryText.withValues(alpha: 0.07),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              cliente,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.nunito(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                height: 1.3,
-                                color: theme.primaryText,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            currencyFormat.format(valorNum),
-                            style: GoogleFonts.nunito(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: theme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        subtitle.toString(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.nunito(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: theme.secondaryText,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  size: 22,
-                  color: theme.secondaryText.withValues(alpha: 0.45),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
-

@@ -89,24 +89,6 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               appStateNotifier.loggedIn ? NavBarPage() : OnboardingWidget(),
           routes: [
             FFRoute(
-              name: AddEnderecoWidget.routeName,
-              path: AddEnderecoWidget.routePath,
-              builder: (context, params) => AddEnderecoWidget(
-                edit: params.getParam(
-                  'edit',
-                  ParamType.bool,
-                ),
-                usuario: params.getParam<ClientRow>(
-                  'usuario',
-                  ParamType.SupabaseRow,
-                ),
-                endereco: params.getParam<ClientAddressRow>(
-                  'endereco',
-                  ParamType.SupabaseRow,
-                ),
-              ),
-            ),
-            FFRoute(
               name: OnboardingWidget.routeName,
               path: OnboardingWidget.routePath,
               builder: (context, params) => OnboardingWidget(),
@@ -167,33 +149,6 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                   : HomeWidget(),
             ),
             FFRoute(
-              name: AvaliacoesWidget.routeName,
-              path: AvaliacoesWidget.routePath,
-              requireAuth: true,
-              builder: (context, params) => AvaliacoesWidget(
-                driverId: params.getParam(
-                  'driverId',
-                  ParamType.String,
-                ),
-                ratings: params.getParam<MotoboyRatingsRow>(
-                  'ratings',
-                  ParamType.SupabaseRow,
-                  isList: true,
-                ),
-              ),
-            ),
-            FFRoute(
-              name: MeusEnderecosWidget.routeName,
-              path: MeusEnderecosWidget.routePath,
-              builder: (context, params) => MeusEnderecosWidget(
-                returnToCart: params.getParam<bool>(
-                      'returnToCart',
-                      ParamType.bool,
-                    ) ??
-                    false,
-              ),
-            ),
-            FFRoute(
               name: SobreWidget.routeName,
               path: SobreWidget.routePath,
               builder: (context, params) => SobreWidget(),
@@ -222,6 +177,18 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               name: MeusDadosWidget.routeName,
               path: MeusDadosWidget.routePath,
               builder: (context, params) => MeusDadosWidget(),
+            ),
+            FFRoute(
+              name: DadosMinhaEmpresaWidget.routeName,
+              path: DadosMinhaEmpresaWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => const DadosMinhaEmpresaWidget(),
+            ),
+            FFRoute(
+              name: CnaesServicosWidget.routeName,
+              path: CnaesServicosWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => const CnaesServicosWidget(),
             ),
             FFRoute(
               name: RecuperarsenhaWidget.routeName,
@@ -273,6 +240,12 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               path: CertificadosDigitaisWidget.routePath,
               requireAuth: true,
               builder: (context, params) => CertificadosDigitaisWidget(),
+            ),
+            FFRoute(
+              name: CompanyDocumentsWidget.routeName,
+              path: CompanyDocumentsWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => const CompanyDocumentsWidget(),
             ),
             FFRoute(
               name: ChatWidget.routeName,
